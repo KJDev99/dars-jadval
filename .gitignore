@@ -1,0 +1,6 @@
+node_modules
+dist
+scripts/.bench.mjs
+scripts/.bench-inc.mjs
+*.local
+.DS_Store
