@@ -61,6 +61,10 @@ export const SUBJECTS: Subject[] = [
   { id: 'texnologiya', name: 'Texnologiya', short: 'Texnol.', yonalish: 'Amaliy fanlar', weight: 3, primaryHomeroom: true, color: '#fb923c' },
   { id: 'jismoniy_tarbiya', name: 'Jismoniy tarbiya', short: 'Jism.t.', yonalish: 'Amaliy fanlar', weight: 1, primaryHomeroom: false, color: '#f97316' },
   { id: 'chqbt', name: "Chaqiruvga qadar boshlang'ich tayyorgarlik", short: 'CHQBT', yonalish: 'Amaliy fanlar', weight: 4, primaryHomeroom: false, color: '#ea580c' },
+
+  // ───────────── Reja tashqarisi ─────────────
+  // Har bir sinfda haftada 1 soat, faqat o'sha sinfning rahbari o'tadi.
+  { id: 'manaviyat', name: "Ma'naviyat soati", short: "Ma'nav.", yonalish: 'Ijtimoiy fanlar', weight: 2, primaryHomeroom: false, homeroomOnly: true, outsidePlan: true, color: '#0d9488' },
 ]
 
 /** Rasmiy tayanch o'quv reja: fan -> sinf -> haftalik soat */
@@ -99,6 +103,9 @@ export const STANDARD_HOURS: Record<string, Record<number, number>> = {
   texnologiya: /*       */ h(1, 1, 1, 1, 2, 2, 2, 1, 1, 0, 0),
   jismoniy_tarbiya: /*  */ h(1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2),
   chqbt: /*             */ h(0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2),
+
+  // Reja tashqarisi — sinf rahbarining haftalik ma'naviyat soati
+  manaviyat: /*         */ h(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
 }
 
 /** Rasmiy hujjatdagi nazorat qiymatlari — o'quv reja sahifasida solishtirish uchun */
@@ -123,7 +130,13 @@ export function standardHours(grade: number, subjectId: string): number {
   return STANDARD_HOURS[subjectId]?.[grade] ?? 0
 }
 
-/** Sinf darajasi bo'yicha standart haftalik jami soat */
+/** Sinf darajasi bo'yicha standart haftalik jami soat (reja tashqarisi fanlarsiz) */
 export function standardTotal(grade: number): number {
-  return SUBJECTS.reduce((sum, s) => sum + standardHours(grade, s.id), 0)
+  return SUBJECTS.filter((s) => !s.outsidePlan).reduce((sum, s) => sum + standardHours(grade, s.id), 0)
 }
+
+/** Tayanch o'quv rejaga kiruvchi fanlar */
+export const PLAN_SUBJECTS = SUBJECTS.filter((s) => !s.outsidePlan)
+
+/** Reja tashqarisidagi fanlar (Ma'naviyat soati kabi) */
+export const EXTRA_SUBJECTS = SUBJECTS.filter((s) => s.outsidePlan)

@@ -2,54 +2,172 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────── Mavzu tokenlari ─────────────────────────── */
 @layer base {
+  :root {
+    --c-canvas: 241 245 249; /* slate-100 */
+    --c-surface: 255 255 255;
+    --c-raised: 248 250 252; /* slate-50 */
+    --c-line: 226 232 240; /* slate-200 */
+    --c-line-soft: 241 245 249; /* slate-100 */
+    --c-line-strong: 203 213 225; /* slate-300 */
+    --c-fg: 15 23 42; /* slate-900 */
+    --c-fg-2: 51 65 85; /* slate-700 */
+    --c-muted: 100 116 139; /* slate-500 */
+    --c-faint: 148 163 184; /* slate-400 */
+    --tint: 6%;
+    color-scheme: light;
+  }
+
+  .dark {
+    --c-canvas: 9 12 20;
+    --c-surface: 17 23 35;
+    --c-raised: 25 33 48;
+    --c-line: 39 50 69;
+    --c-line-soft: 30 39 55;
+    --c-line-strong: 58 72 96;
+    --c-fg: 226 232 240; /* slate-200 */
+    --c-fg-2: 203 213 225; /* slate-300 */
+    --c-muted: 148 163 184; /* slate-400 */
+    --c-faint: 100 116 139; /* slate-500 */
+    --tint: 18%;
+    color-scheme: dark;
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
   }
+
   body {
-    @apply bg-slate-100 text-slate-900 antialiased;
+    @apply bg-canvas text-fg antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  ::selection {
+    @apply bg-indigo-500/25;
+  }
+
+  /* Nozik scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-line-strong;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-faint;
   }
 }
 
 @layer components {
+  /* ───────────────────────────── Tugmalar ───────────────────────────── */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium
-           transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply relative inline-flex select-none items-center justify-center gap-1.5 rounded-lg px-3 py-1.5
+           text-sm font-medium leading-5 outline-none
+           transition-[background-color,border-color,color,box-shadow] duration-150 ease-out
+           focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-1
+           focus-visible:ring-offset-surface
+           disabled:pointer-events-none disabled:opacity-45;
   }
+
   .btn-primary {
-    @apply btn bg-indigo-600 text-white hover:bg-indigo-500;
+    @apply btn bg-indigo-600 text-white shadow-sm
+           hover:bg-indigo-500 hover:shadow-btn-hover
+           active:bg-indigo-700 active:shadow-none;
   }
+
   .btn-ghost {
-    @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+    @apply btn border border-line bg-surface text-fg-2
+           hover:border-line-strong hover:bg-raised hover:text-fg
+           active:bg-line-soft;
   }
+
+  .btn-soft {
+    @apply btn bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/[0.18]
+           active:bg-indigo-500/25 dark:text-indigo-300;
+  }
+
   .btn-danger {
-    @apply btn border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100;
+    @apply btn border border-rose-500/25 bg-rose-500/10 text-rose-600
+           hover:border-rose-500/40 hover:bg-rose-500/[0.18]
+           active:bg-rose-500/25 dark:text-rose-300;
   }
+
+  .btn-icon {
+    @apply btn h-7 w-7 rounded-md p-0 text-faint hover:bg-raised hover:text-fg-2;
+  }
+
+  /* Segmentli tanlagich */
+  .seg {
+    @apply inline-flex overflow-hidden rounded-lg border border-line bg-surface p-0.5;
+  }
+  .seg-item {
+    @apply inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium text-muted
+           transition-colors duration-150 hover:text-fg;
+  }
+  .seg-item-on {
+    @apply bg-indigo-600 text-white shadow-sm hover:text-white;
+  }
+
+  /* ───────────────────────── Formalar va kartalar ───────────────────── */
   .input {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm
-           outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100;
+    @apply w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-fg
+           outline-none transition-colors duration-150
+           placeholder:text-faint
+           hover:border-line-strong
+           focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20;
   }
+
+  select.input {
+    @apply cursor-pointer;
+  }
+
   .card {
-    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+    @apply rounded-xl border border-line bg-surface shadow-card;
   }
+
   .badge {
-    @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium;
+    @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium;
   }
+
   .th {
-    @apply whitespace-nowrap px-2.5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+    @apply whitespace-nowrap px-2.5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted;
   }
+
   .td {
-    @apply px-2.5 py-1.5 text-sm text-slate-700;
+    @apply px-2.5 py-1.5 text-sm text-fg-2;
+  }
+
+  /* Rangli fon (mavzuga moslashadi) */
+  .tint-indigo {
+    @apply border-indigo-500/25 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300;
+  }
+  .tint-emerald {
+    @apply border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300;
+  }
+  .tint-amber {
+    @apply border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300;
+  }
+  .tint-rose {
+    @apply border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300;
+  }
+  .tint-slate {
+    @apply border-line bg-raised text-muted;
   }
 }
 
-/* Chop etish (print) uchun */
+/* ───────────────────────── Chop etish (print) ──────────────────────── */
 @media print {
   .no-print {
     display: none !important;
   }
   body {
     background: #fff;
+    color: #000;
   }
   .print-page {
     break-after: page;

@@ -51,6 +51,10 @@ interface State {
   clearLocks: () => void
   swapPlacements: (unitIdA: string, unitIdB: string) => void
 
+  // Sinf rahbari va metodik kun
+  setHomeroom: (classId: string, teacherId: string | null) => void
+  setPedagogicalDay: (speciality: string, day: number | null) => void
+
   // Sozlamalar / jadval
   setSettings: (patch: Partial<Settings>) => void
   setSchedule: (s: Schedule | null) => void
@@ -274,6 +278,32 @@ export const useStore = create<State>()(
           }
         }),
 
+      /* ── Sinf rahbari va metodik kun ─────────────────────────────── */
+      setHomeroom: (classId, teacherId) =>
+        set((s) => {
+          const teachers = s.teachers.map((t) => {
+            if (t.homeroomClassId === classId && t.id !== teacherId) {
+              return { ...t, homeroomClassId: undefined }
+            }
+            if (t.id === teacherId) return { ...t, homeroomClassId: classId }
+            return t
+          })
+          // Sinf rahbari o'zgarsa Ma'naviyat soati ham yangi rahbarga o'tadi
+          const assignments = { ...s.assignments }
+          const key = asgKey(classId, 'manaviyat')
+          if (teacherId) assignments[key] = teacherId
+          else delete assignments[key]
+          return { teachers, assignments, ...stale() }
+        }),
+
+      setPedagogicalDay: (speciality, day) =>
+        set((s) => {
+          const pedagogicalDays = { ...s.settings.pedagogicalDays }
+          if (day === null) delete pedagogicalDays[speciality]
+          else pedagogicalDays[speciality] = day
+          return { settings: { ...s.settings, pedagogicalDays }, ...stale() }
+        }),
+
       /* ── Sozlamalar / jadval ─────────────────────────────────────── */
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
       setSchedule: (schedule) => set({ schedule, scheduleStale: false }),
@@ -281,18 +311,26 @@ export const useStore = create<State>()(
     }),
     {
       name: 'dars-jadval-v1',
-      version: 2,
+      version: 3,
       migrate: (persisted: any, version) => {
+        const p = { ...(persisted ?? {}) }
         if (version < 2) {
-          return {
-            ...persisted,
-            rules: persisted?.rules ?? [],
-            lockedUnitIds: persisted?.lockedUnitIds ?? [],
-            scheduleStale: false,
-            settings: { ...defaultSettings(), ...(persisted?.settings ?? {}) },
-          }
+          p.rules = p.rules ?? []
+          p.lockedUnitIds = p.lockedUnitIds ?? []
+          p.scheduleStale = false
         }
-        return persisted
+        if (version < 3) {
+          // Toifa, sinf rahbari cheklovi va metodik kunlar qo'shildi
+          p.teachers = (p.teachers ?? []).map((t: any) => ({
+            category: 'yoq',
+            restrictedToHomeroom: t.speciality === "Boshlang'ich ta'lim" && !!t.homeroomClassId,
+            ...t,
+          }))
+          p.schedule = null
+          p.scheduleStale = false
+        }
+        p.settings = { ...defaultSettings(), ...(p.settings ?? {}) }
+        return p
       },
     },
   ),

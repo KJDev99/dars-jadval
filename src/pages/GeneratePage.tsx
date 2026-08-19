@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { IcoRerun, IcoPlay, IcoUnlock, IcoStop } from '../components/icons'
 import { useStore } from '../store'
 import { Field, Page, PageHeader, Stat } from '../components/ui'
 import { buildUnitsForClass } from '../lib/derive'
@@ -35,7 +36,7 @@ export default function GeneratePage() {
   const [diff, setDiff] = useState<DiffRow[] | null>(null)
   const workerRef = useRef<Worker | null>(null)
 
-  const constraints = useMemo(() => resolveTeacherConstraints(teachers, rules), [teachers, rules])
+  const constraints = useMemo(() => resolveTeacherConstraints(teachers, rules, settings.pedagogicalDays), [teachers, rules, settings.pedagogicalDays])
   const activeRules = useMemo(() => rules.filter((r) => r.active && r.kind !== 'note'), [rules])
 
   const { units, problems } = useMemo(() => {
@@ -68,7 +69,10 @@ export default function GeneratePage() {
 
     let asg = assignments
     if (problems.length > 0) {
-      const r = autoAssign(classes, teachers, overrides, assignments, true, settings.seed, constraints)
+      const r = autoAssign(classes, teachers, overrides, assignments, true, settings.seed,
+      constraints,
+      settings.stavkaHours,
+    )
       asg = r.assignments
       setAssignments(r.assignments)
       setLog((l) => [...l, `Tarifikatsiya avtomatik to'ldirildi (${r.problems.length} muammo).`])
@@ -156,13 +160,13 @@ export default function GeneratePage() {
       />
 
       {hasSchedule && scheduleStale && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
           <span>
             <b>Ma'lumot o'zgardi.</b> Jadval eskirdi. «Qayta hisoblash» tugmasi mavjud jadvalni asos qilib oladi va
             faqat zarur o'zgarishlarni kiritadi.
           </span>
           <button className="btn-primary shrink-0" onClick={() => start('incremental')} disabled={running}>
-            ↻ Qayta hisoblash (minimal o'zgarish)
+            <IcoRerun className="h-4 w-4" /> Qayta hisoblash (minimal o'zgarish)
           </button>
         </div>
       )}
@@ -171,8 +175,8 @@ export default function GeneratePage() {
         <div className="space-y-4 lg:col-span-2">
           {/* Cheklovlar */}
           <div className="card p-5">
-            <h2 className="mb-3 font-semibold text-slate-900">Cheklovlar</h2>
-            <ul className="space-y-1.5 text-sm text-slate-600">
+            <h2 className="mb-3 font-semibold text-fg">Cheklovlar</h2>
+            <ul className="space-y-1.5 text-sm text-fg-2">
               {[
                 ['Qattiq', "O'qituvchi bir vaqtda ikki sinfda dars bera olmaydi"],
                 ['Qattiq', "Sinf jadvalida bo'shliq (oyna) bo'lmaydi — darslar 1-soatdan ketma-ket"],
@@ -188,7 +192,7 @@ export default function GeneratePage() {
                 <li key={i} className="flex gap-2">
                   <span
                     className={`badge shrink-0 ${
-                      k === 'Qattiq' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'
+                      k === 'Qattiq' ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300' : 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
                     }`}
                   >
                     {k}
@@ -199,11 +203,11 @@ export default function GeneratePage() {
             </ul>
 
             {activeRules.length > 0 && (
-              <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50/60 p-3">
-                <div className="text-xs font-semibold text-indigo-800">
+              <div className="mt-4 rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3">
+                <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
                   Qo'shimcha shartlar ({activeRules.length})
                 </div>
-                <ul className="mt-1 max-h-32 space-y-0.5 overflow-y-auto text-xs text-indigo-900/80">
+                <ul className="mt-1 max-h-32 space-y-0.5 overflow-y-auto text-xs text-indigo-700/90 dark:text-indigo-300/80">
                   {activeRules.map((r) => (
                     <li key={r.id}>
                       • {describeRule(r, teachers.find((t) => t.id === r.teacherId)?.fullName)}
@@ -216,7 +220,7 @@ export default function GeneratePage() {
 
           {/* Sozlamalar */}
           <div className="card p-5">
-            <h2 className="mb-3 font-semibold text-slate-900">Sozlamalar</h2>
+            <h2 className="mb-3 font-semibold text-fg">Sozlamalar</h2>
             <div className="grid gap-3 sm:grid-cols-3">
               <Field label="1–4 sinf o'quv kunlari">
                 <input type="number" min={4} max={6} className="input" value={settings.daysPrimary}
@@ -243,14 +247,18 @@ export default function GeneratePage() {
                 <input type="number" className="input" value={settings.seed}
                   onChange={(e) => setSettings({ seed: +e.target.value })} />
               </Field>
+              <Field label="1 stavka (soat)" hint="Tarifikatsiyada toifa bo'yicha taqsimlash uchun">
+                <input type="number" min={1} max={40} className="input" value={settings.stavkaHours}
+                  onChange={(e) => setSettings({ stavkaHours: +e.target.value })} />
+              </Field>
             </div>
 
             <div className="mt-4">
               <div className="flex items-baseline justify-between">
-                <span className="text-xs font-medium text-slate-600">
+                <span className="text-xs font-medium text-fg-2">
                   Barqarorlik — mavjud jadvalni saqlash kuchi
                 </span>
-                <span className="text-xs font-semibold text-indigo-600">{settings.stabilityWeight}</span>
+                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{settings.stabilityWeight}</span>
               </div>
               <input
                 type="range"
@@ -261,20 +269,20 @@ export default function GeneratePage() {
                 value={settings.stabilityWeight}
                 onChange={(e) => setSettings({ stabilityWeight: +e.target.value })}
               />
-              <div className="flex justify-between text-[11px] text-slate-400">
+              <div className="flex justify-between text-[11px] text-faint">
                 <span>0 — erkin qayta tuzish</span>
                 <span>200 — faqat zarur o'zgarish</span>
               </div>
             </div>
 
             <div className="mt-4">
-              <div className="mb-1.5 text-xs font-medium text-slate-600">Kunlik maksimal dars soati (sinf bo'yicha)</div>
+              <div className="mb-1.5 text-xs font-medium text-fg-2">Kunlik maksimal dars soati (sinf bo'yicha)</div>
               <div className="flex flex-wrap gap-1.5">
                 {Object.keys(settings.maxPerDayByGrade).map(Number).sort((a, b) => a - b).map((g) => (
-                  <label key={g} className="flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1">
-                    <span className="text-xs text-slate-500">{g}-sinf</span>
+                  <label key={g} className="flex items-center gap-1 rounded-lg border border-line px-2 py-1">
+                    <span className="text-xs text-muted">{g}-sinf</span>
                     <input type="number" min={3} max={9}
-                      className="w-12 rounded border border-slate-200 px-1 py-0.5 text-center text-sm"
+                      className="w-12 rounded border border-line px-1 py-0.5 text-center text-sm"
                       value={settings.maxPerDayByGrade[g]}
                       onChange={(e) =>
                         setSettings({ maxPerDayByGrade: { ...settings.maxPerDayByGrade, [g]: +e.target.value } })
@@ -288,25 +296,25 @@ export default function GeneratePage() {
           {/* O'zgarishlar farqi */}
           {diff && (
             <div className="card overflow-hidden">
-              <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2">
-                <h2 className="text-sm font-semibold text-slate-700">Nima o'zgardi</h2>
-                <span className={`badge ${diff.length === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}`}>
+              <div className="flex items-center justify-between border-b border-line bg-raised px-4 py-2">
+                <h2 className="text-sm font-semibold text-fg-2">Nima o'zgardi</h2>
+                <span className={`badge ${diff.length === 0 ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'}`}>
                   {diff.length} ta dars ko'chdi
                 </span>
               </div>
               {diff.length === 0 ? (
-                <p className="p-4 text-sm text-slate-500">
+                <p className="p-4 text-sm text-muted">
                   Jadvalda birorta ham dars o'z o'rnidan qo'zg'almadi — yangi shartlar mavjud jadvalga to'liq mos keldi.
                 </p>
               ) : (
-                <ul className="max-h-72 divide-y divide-slate-50 overflow-y-auto text-sm">
+                <ul className="max-h-72 divide-y divide-line-soft overflow-y-auto text-sm">
                   {diff.map((d, i) => (
                     <li key={i} className="flex items-center gap-2 px-4 py-1.5">
-                      <span className="w-12 shrink-0 font-semibold text-slate-700">{d.classId}</span>
-                      <span className="flex-1 text-slate-600">{d.label}</span>
-                      <span className="text-xs text-slate-400 line-through">{d.from}</span>
+                      <span className="w-12 shrink-0 font-semibold text-fg-2">{d.classId}</span>
+                      <span className="flex-1 text-fg-2">{d.label}</span>
+                      <span className="text-xs text-faint line-through">{d.from}</span>
                       <span className="text-xs">→</span>
-                      <span className="text-xs font-medium text-indigo-600">{d.to}</span>
+                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">{d.to}</span>
                     </li>
                   ))}
                 </ul>
@@ -318,7 +326,7 @@ export default function GeneratePage() {
         {/* Ishga tushirish */}
         <div className="space-y-4">
           <div className="card p-5">
-            <h2 className="mb-3 font-semibold text-slate-900">Ishga tushirish</h2>
+            <h2 className="mb-3 font-semibold text-fg">Ishga tushirish</h2>
             <div className="space-y-2 text-sm">
               <Row label="Sinflar" value={classes.length} />
               <Row label="O'qituvchilar" value={teachers.length} />
@@ -330,7 +338,7 @@ export default function GeneratePage() {
             </div>
 
             {problems.length > 0 && (
-              <details className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+              <details className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
                 <summary className="cursor-pointer">Biriktirilmagan fanlar ({problems.length})</summary>
                 <ul className="mt-1 max-h-32 list-disc overflow-y-auto pl-4">
                   {problems.slice(0, 60).map((p, i) => (<li key={i}>{p}</li>))}
@@ -345,7 +353,13 @@ export default function GeneratePage() {
               disabled={running || units.length === 0 || !hasSchedule}
               title={!hasSchedule ? 'Avval jadval yarating' : undefined}
             >
-              {running ? 'Hisoblanmoqda...' : "↻ Qayta hisoblash (minimal o'zgarish)"}
+              {running ? (
+                'Hisoblanmoqda...'
+              ) : (
+                <>
+                  <IcoRerun className="h-4 w-4" /> Qayta hisoblash (minimal o'zgarish)
+                </>
+              )}
             </button>
             <button
               className="btn-ghost mt-2 w-full py-2"
@@ -355,32 +369,34 @@ export default function GeneratePage() {
               }}
               disabled={running || units.length === 0}
             >
-              ▶ Yangidan yaratish
+              <IcoPlay className="h-3.5 w-3.5" /> Yangidan yaratish
             </button>
 
             {lockedUnitIds.length > 0 && (
               <button className="btn-ghost mt-2 w-full text-xs" onClick={clearLocks}>
-                🔓 {lockedUnitIds.length} ta qulfni bo'shatish
+                <IcoUnlock className="h-3.5 w-3.5" /> {lockedUnitIds.length} ta qulfni bo'shatish
               </button>
             )}
 
             {running && (
               <>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
-                  <div className="h-full bg-indigo-500 transition-all" style={{ width: `${Math.round(pct * 100)}%` }} />
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-line">
+                  <div className="h-full bg-indigo-500/100 transition-all" style={{ width: `${Math.round(pct * 100)}%` }} />
                 </div>
-                <div className="mt-1 flex justify-between text-xs text-slate-500">
+                <div className="mt-1 flex justify-between text-xs text-muted">
                   <span>{Math.round(pct * 100)}%</span>
                   <span>jarima: {Math.round(cost)}</span>
                 </div>
-                <button className="btn-ghost mt-2 w-full" onClick={stop}>To'xtatish</button>
+                <button className="btn-ghost mt-2 w-full" onClick={stop}>
+                  <IcoStop className="h-3.5 w-3.5" /> To'xtatish
+                </button>
               </>
             )}
           </div>
 
           {report && (
             <div className="card p-5">
-              <h2 className="mb-3 font-semibold text-slate-900">Natija</h2>
+              <h2 className="mb-3 font-semibold text-fg">Natija</h2>
               <div className="grid grid-cols-2 gap-2">
                 <Stat label="To'qnashuv" value={report.teacherClashes} tone={report.teacherClashes === 0 ? 'emerald' : 'rose'} />
                 <Stat label="Sinf oynasi" value={report.classGaps} tone={report.classGaps === 0 ? 'emerald' : 'rose'} />
@@ -388,7 +404,7 @@ export default function GeneratePage() {
                 <Stat label="Xatolar" value={report.errors} tone={report.errors ? 'rose' : 'emerald'} />
               </div>
               {lastResult && (
-                <p className="mt-3 text-xs text-slate-500">
+                <p className="mt-3 text-xs text-muted">
                   {lastResult.stats.iterations.toLocaleString('uz-UZ')} iteratsiya,{' '}
                   {(lastResult.stats.durationMs / 1000).toFixed(1)} soniya
                 </p>
@@ -397,9 +413,9 @@ export default function GeneratePage() {
           )}
 
           {log.length > 0 && (
-            <div className="card max-h-64 overflow-y-auto p-4 text-xs text-slate-600">
+            <div className="card max-h-64 overflow-y-auto p-4 text-xs text-fg-2">
               {log.map((l, i) => (
-                <div key={i} className="border-b border-slate-100 py-1 last:border-0">{l}</div>
+                <div key={i} className="border-b border-line-soft py-1 last:border-0">{l}</div>
               ))}
             </div>
           )}
@@ -411,9 +427,9 @@ export default function GeneratePage() {
 
 function Row({ label, value, warn }: { label: string; value: string | number; warn?: boolean }) {
   return (
-    <div className="flex justify-between border-b border-slate-100 pb-1">
-      <span className="text-slate-500">{label}</span>
-      <span className={`font-medium ${warn ? 'text-rose-600' : 'text-slate-800'}`}>{value}</span>
+    <div className="flex justify-between border-b border-line-soft pb-1">
+      <span className="text-muted">{label}</span>
+      <span className={`font-medium ${warn ? 'text-rose-600 dark:text-rose-400' : 'text-fg'}`}>{value}</span>
     </div>
   )
 }

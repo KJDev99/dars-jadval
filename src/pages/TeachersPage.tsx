@@ -1,15 +1,28 @@
 import { useMemo, useState } from 'react'
+import Select from '../components/Select'
 import { useStore } from '../store'
 import { Field, Modal, Page, PageHeader } from '../components/ui'
 import { SUBJECTS, SUBJECT_BY_ID, YONALISHLAR } from '../data/curriculum'
 import { teacherLoads } from '../lib/derive'
-import { DAY_NAMES } from '../types'
-import type { Teacher } from '../types'
+import { CATEGORY_LABELS, CATEGORY_ORDER, CATEGORY_RANK, CATEGORY_SHORT, DAY_NAMES } from '../types'
+import type { Teacher, TeacherCategory } from '../types'
+import { formatStavka } from '../lib/derive'
+import { useIsDark, tintOf } from '../lib/theme'
+import { IcoPlus, IcoSearch, IcoEdit, IcoTrash, IcoCategory } from '../components/icons'
 import { SPECIALITY_SPEC } from '../data/seed'
+
+/** Toifa nishoni rangi */
+const CAT_TINT: Record<TeacherCategory, string> = {
+  oliy: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
+  birinchi: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  ikkinchi: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  yoq: 'bg-line-soft text-muted',
+}
 
 const blank = (): Omit<Teacher, 'id'> => ({
   fullName: '',
   speciality: '',
+  category: 'yoq',
   subjectIds: [],
   minHours: 4,
   maxHours: 24,
@@ -17,11 +30,14 @@ const blank = (): Omit<Teacher, 'id'> => ({
 })
 
 export default function TeachersPage() {
-  const { teachers, classes, assignments, overrides, addTeacher, updateTeacher, removeTeacher } = useStore()
+  const { teachers, classes, assignments, overrides, settings, addTeacher, updateTeacher, removeTeacher } =
+    useStore()
   const [editing, setEditing] = useState<Teacher | null>(null)
   const [creating, setCreating] = useState<Omit<Teacher, 'id'> | null>(null)
   const [q, setQ] = useState('')
   const [filterSubject, setFilterSubject] = useState('')
+  const [filterCat, setFilterCat] = useState<TeacherCategory | ''>('')
+  const dark = useIsDark(useStore((s) => s.settings.theme) ?? 'system')
 
   const loads = useMemo(
     () => teacherLoads(teachers, classes, assignments, overrides),
@@ -33,9 +49,10 @@ export default function TeachersPage() {
     return teachers.filter(
       (t) =>
         (!s || t.fullName.toLowerCase().includes(s) || t.speciality.toLowerCase().includes(s)) &&
-        (!filterSubject || t.subjectIds.includes(filterSubject)),
+        (!filterSubject || t.subjectIds.includes(filterSubject)) &&
+        (!filterCat || t.category === filterCat),
     )
-  }, [teachers, q, filterSubject])
+  }, [teachers, q, filterSubject, filterCat])
 
   const grouped = useMemo(() => {
     const m = new Map<string, Teacher[]>()
@@ -43,6 +60,13 @@ export default function TeachersPage() {
       const k = t.speciality || 'Boshqa'
       if (!m.has(k)) m.set(k, [])
       m.get(k)!.push(t)
+    }
+    for (const list of m.values()) {
+      list.sort(
+        (x, y) =>
+          CATEGORY_RANK[x.category ?? 'yoq'] - CATEGORY_RANK[y.category ?? 'yoq'] ||
+          x.fullName.localeCompare(y.fullName),
+      )
     }
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]))
   }, [filtered])
@@ -68,55 +92,82 @@ export default function TeachersPage() {
         subtitle="Har bir o'qituvchi ma'lum fan bo'yicha mutaxassis. Haftalik yuklama chegarasi: minimal 4, maksimal 24 soat."
         actions={
           <>
-            <input
-              className="input w-52"
-              placeholder="Qidirish..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+            <div className="relative">
+              <IcoSearch className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" />
+              <input
+                className="input w-48 pl-8"
+                placeholder="Qidirish..."
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <Select
+              className="w-40"
+              value={filterCat}
+              onChange={(v) => setFilterCat(v as TeacherCategory | '')}
+              emptyLabel="Barcha toifalar"
+              options={CATEGORY_ORDER.map((c) => ({
+                value: c,
+                label: CATEGORY_LABELS[c],
+                hint: String(teachers.filter((t) => (t.category ?? 'yoq') === c).length),
+              }))}
             />
-            <select className="input w-52" value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)}>
-              <option value="">Barcha fanlar</option>
-              {SUBJECTS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <Select
+              className="w-48"
+              value={filterSubject}
+              onChange={setFilterSubject}
+              emptyLabel="Barcha fanlar"
+              options={SUBJECTS.map((s) => ({
+                value: s.id,
+                label: s.name,
+                color: s.color,
+                group: s.yonalish,
+              }))}
+            />
             <button className="btn-primary" onClick={() => setCreating(blank())}>
-              + O'qituvchi
+              <IcoPlus className="h-4 w-4" /> O'qituvchi
             </button>
           </>
         }
       />
 
-      <div className="mb-3 flex flex-wrap gap-3 text-sm text-slate-500">
+      <div className="mb-3 flex flex-wrap gap-3 text-sm text-muted">
         <span>
-          Jami: <b className="text-slate-800">{teachers.length}</b>
+          Jami: <b className="text-fg">{teachers.length}</b>
         </span>
         <span>
-          Ko'rsatilmoqda: <b className="text-slate-800">{filtered.length}</b>
+          Ko'rsatilmoqda: <b className="text-fg">{filtered.length}</b>
         </span>
         <span>
           Umumiy yuklama:{' '}
-          <b className="text-slate-800">{Object.values(loads).reduce((a, b) => a + b, 0)}</b> soat
+          <b className="text-fg">{Object.values(loads).reduce((a, b) => a + b, 0)}</b> soat
+        </span>
+        <span className="flex items-center gap-1.5">
+          <IcoCategory className="h-3.5 w-3.5 text-faint" />
+          {CATEGORY_ORDER.map((c) => (
+            <span key={c} className={`badge ${CAT_TINT[c]}`}>
+              {CATEGORY_SHORT[c]} {teachers.filter((t) => (t.category ?? 'yoq') === c).length}
+            </span>
+          ))}
         </span>
       </div>
 
       <div className="space-y-4">
         {grouped.map(([spec, list]) => (
           <div key={spec} className="card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2">
-              <h2 className="text-sm font-semibold text-slate-700">{spec}</h2>
-              <span className="text-xs text-slate-500">{list.length} ta</span>
+            <div className="flex items-center justify-between border-b border-line bg-raised px-4 py-2">
+              <h2 className="text-sm font-semibold text-fg-2">{spec}</h2>
+              <span className="text-xs text-muted">{list.length} ta</span>
             </div>
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100">
+                <tr className="border-b border-line-soft">
                   <th className="th">F.I.Sh.</th>
+                  <th className="th">Toifa</th>
                   <th className="th">Fanlari</th>
-                  <th className="th">Band kunlar</th>
+                  <th className="th">Bo‘sh kunlar</th>
                   <th className="th text-center">Yuklama</th>
-                  <th className="th text-center">Chegara</th>
+                  <th className="th text-center">Stavka</th>
                   <th className="th"></th>
                 </tr>
               </thead>
@@ -126,16 +177,21 @@ export default function TeachersPage() {
                   const bad = load > t.maxHours
                   const low = load > 0 && load < t.minHours
                   return (
-                    <tr key={t.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
+                    <tr key={t.id} className="border-b border-line-soft last:border-0 hover:bg-raised">
                       <td className="td">
-                        <button className="font-medium text-slate-800 hover:text-indigo-600" onClick={() => setEditing(t)}>
+                        <button className="font-medium text-fg hover:text-indigo-600 dark:hover:text-indigo-400" onClick={() => setEditing(t)}>
                           {t.fullName}
                         </button>
                         {t.homeroomClassId && (
-                          <span className="badge ml-2 bg-indigo-50 text-indigo-700">
+                          <span className="badge ml-2 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300">
                             {t.homeroomClassId} sinf rahbari
                           </span>
                         )}
+                      </td>
+                      <td className="td">
+                        <span className={`badge ${CAT_TINT[t.category ?? 'yoq']}`}>
+                          {CATEGORY_LABELS[t.category ?? 'yoq']}
+                        </span>
                       </td>
                       <td className="td">
                         <div className="flex flex-wrap gap-1">
@@ -144,7 +200,7 @@ export default function TeachersPage() {
                               key={sid}
                               className="badge"
                               style={{
-                                background: (SUBJECT_BY_ID[sid]?.color ?? '#94a3b8') + '22',
+                                background: tintOf(SUBJECT_BY_ID[sid]?.color ?? '#94a3b8', dark),
                                 color: SUBJECT_BY_ID[sid]?.color ?? '#475569',
                               }}
                             >
@@ -152,36 +208,51 @@ export default function TeachersPage() {
                             </span>
                           ))}
                           {t.subjectIds.length > 5 && (
-                            <span className="badge bg-slate-100 text-slate-500">+{t.subjectIds.length - 5}</span>
+                            <span className="badge bg-line-soft text-muted">+{t.subjectIds.length - 5}</span>
                           )}
                         </div>
                       </td>
-                      <td className="td text-xs text-slate-500">
-                        {t.unavailableDays.length
-                          ? t.unavailableDays.map((d) => DAY_NAMES[d]?.slice(0, 3)).join(', ')
-                          : '—'}
+                      <td className="td text-xs text-muted">
+                        <div className="flex flex-wrap items-center gap-1">
+                          {settings.pedagogicalDays[t.speciality] !== undefined && (
+                            <span
+                              className="badge tint-indigo"
+                              title="Metodbirlashmaning metodik kuni"
+                            >
+                              {DAY_NAMES[settings.pedagogicalDays[t.speciality]].slice(0, 3)} metodik
+                            </span>
+                          )}
+                          {t.unavailableDays.map((d) => (
+                            <span key={d} className="badge tint-rose">
+                              {DAY_NAMES[d]?.slice(0, 3)}
+                            </span>
+                          ))}
+                          {settings.pedagogicalDays[t.speciality] === undefined &&
+                            t.unavailableDays.length === 0 && <span>—</span>}
+                        </div>
                       </td>
                       <td
                         className={`td text-center font-semibold ${
-                          bad ? 'text-rose-600' : low ? 'text-amber-600' : 'text-slate-700'
+                          bad ? 'text-rose-600 dark:text-rose-400' : low ? 'text-amber-600 dark:text-amber-400' : 'text-fg-2'
                         }`}
                       >
                         {load}
                       </td>
-                      <td className="td text-center text-xs text-slate-400">
-                        {t.minHours}–{t.maxHours}
+                      <td className="td text-center text-xs text-faint" title={`Chegara: ${t.minHours}–${t.maxHours} soat`}>
+                        {load > 0 ? formatStavka(load, settings.stavkaHours) : '—'}
                       </td>
                       <td className="td text-right">
                         <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setEditing(t)}>
-                          Tahrirlash
+                          <IcoEdit className="h-3 w-3" /> Tahrirlash
                         </button>
                         <button
-                          className="ml-1 rounded px-1.5 py-1 text-slate-300 hover:bg-rose-50 hover:text-rose-600"
+                          className="ml-1 rounded px-1.5 py-1 text-faint hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400"
+                          title="O'chirish"
                           onClick={() => {
                             if (confirm(`${t.fullName} o'chirilsinmi?`)) removeTeacher(t.id)
                           }}
                         >
-                          ✕
+                          <IcoTrash className="h-3.5 w-3.5" />
                         </button>
                       </td>
                     </tr>
@@ -212,6 +283,27 @@ export default function TeachersPage() {
                   onChange={(e) => setForm({ fullName: e.target.value })}
                   placeholder="Karimova Nigora Alisher qizi"
                 />
+              </Field>
+              <Field label="Malaka toifasi" hint="Dars taqsimotida ustuvorlikni belgilaydi">
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {CATEGORY_ORDER.map((c) => {
+                    const on = (form.category ?? 'yoq') === c
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                          on
+                            ? 'border-indigo-500/60 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
+                            : 'border-line text-muted hover:border-line-strong hover:text-fg-2'
+                        }`}
+                        onClick={() => setForm({ category: c })}
+                      >
+                        {CATEGORY_LABELS[c]}
+                      </button>
+                    )
+                  })}
+                </div>
               </Field>
               <Field label="Mutaxassislik">
                 <input
@@ -253,19 +345,40 @@ export default function TeachersPage() {
                   onChange={(e) => setForm({ maxHours: +e.target.value })}
                 />
               </Field>
-              <Field label="Sinf rahbari (boshlang'ich sinf uchun)" hint="Belgilansa, faqat shu sinfga dars beradi">
-                <select
-                  className="input"
+              <Field
+                label="Sinf rahbari"
+                hint="Sinf rahbari o'z sinfida haftada 1 soat Ma'naviyat soatini o'tadi"
+              >
+                <Select
                   value={form.homeroomClassId ?? ''}
-                  onChange={(e) => setForm({ homeroomClassId: e.target.value || undefined })}
-                >
-                  <option value="">— yo'q —</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.grade}-{c.letter}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setForm({ homeroomClassId: v || undefined })}
+                  emptyLabel="— yo'q —"
+                  options={classes.map((c) => {
+                    const busy = teachers.find(
+                      (t) => t.homeroomClassId === c.id && t.id !== (editing?.id ?? ''),
+                    )
+                    return {
+                      value: c.id,
+                      label: `${c.grade}-${c.letter}`,
+                      hint: busy ? 'band' : undefined,
+                      disabled: !!busy,
+                    }
+                  })}
+                />
+              </Field>
+              <Field
+                label="Dars berish doirasi"
+                hint="Boshlang'ich sinf o'qituvchilari faqat o'z sinfiga dars beradi"
+              >
+                <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-sm text-fg-2">
+                  <input
+                    type="checkbox"
+                    checked={!!form.restrictedToHomeroom}
+                    disabled={!form.homeroomClassId}
+                    onChange={(e) => setForm({ restrictedToHomeroom: e.target.checked })}
+                  />
+                  Faqat o'z sinfiga dars beradi
+                </label>
               </Field>
               <Field label="Band kunlar" hint="Bu kunlarda dars qo'yilmaydi">
                 <div className="flex flex-wrap gap-1 pt-1">
@@ -276,7 +389,7 @@ export default function TeachersPage() {
                         key={d}
                         type="button"
                         className={`rounded-md border px-2 py-1 text-xs ${
-                          on ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-500'
+                          on ? 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300' : 'border-line text-muted'
                         }`}
                         onClick={() =>
                           setForm({
@@ -295,13 +408,13 @@ export default function TeachersPage() {
             </div>
 
             <div>
-              <div className="mb-2 text-xs font-medium text-slate-600">
+              <div className="mb-2 text-xs font-medium text-fg-2">
                 O'qita oladigan fanlar ({form.subjectIds.length})
               </div>
-              <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-slate-200 p-3">
+              <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-line p-3">
                 {YONALISHLAR.map((y) => (
                   <div key={y}>
-                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{y}</div>
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-faint">{y}</div>
                     <div className="flex flex-wrap gap-1.5">
                       {SUBJECTS.filter((s) => s.yonalish === y).map((s) => {
                         const on = form.subjectIds.includes(s.id)
@@ -312,7 +425,7 @@ export default function TeachersPage() {
                             className={`rounded-md border px-2 py-1 text-xs transition ${
                               on
                                 ? 'border-transparent text-white'
-                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                : 'border-line bg-surface text-fg-2 hover:border-line-strong'
                             }`}
                             style={on ? { background: s.color } : undefined}
                             onClick={() =>
@@ -333,7 +446,7 @@ export default function TeachersPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-slate-200 pt-3">
+            <div className="flex justify-end gap-2 border-t border-line pt-3">
               <button
                 className="btn-ghost"
                 onClick={() => {

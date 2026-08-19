@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import Select from '../components/Select'
 import { useStore } from '../store'
 import { Empty, Page, PageHeader, Stat } from '../components/ui'
 import { validateSchedule } from '../scheduler/validate'
@@ -25,7 +26,7 @@ export default function ReportPage() {
   const { classes, teachers, settings, overrides, schedule, rules } = useStore()
   const [level, setLevel] = useState<ViolationLevel | 'all'>('all')
 
-  const constraints = useMemo(() => resolveTeacherConstraints(teachers, rules), [teachers, rules])
+  const constraints = useMemo(() => resolveTeacherConstraints(teachers, rules, settings.pedagogicalDays), [teachers, rules, settings.pedagogicalDays])
 
   const report = useMemo(() => {
     if (!schedule) return null
@@ -68,12 +69,17 @@ export default function ReportPage() {
         title="Tekshiruv"
         subtitle="Tuzilgan jadval barcha qattiq va yumshoq qoidalarga muvofiqligi mustaqil ravishda qayta tekshiriladi."
         actions={
-          <select className="input w-44" value={level} onChange={(e) => setLevel(e.target.value as any)}>
-            <option value="all">Barchasi</option>
-            <option value="error">Faqat xatolar</option>
-            <option value="warning">Faqat ogohlantirish</option>
-            <option value="info">Faqat ma'lumot</option>
-          </select>
+          <Select
+            className="w-48"
+            value={level}
+            onChange={(v) => setLevel(v as ViolationLevel | 'all')}
+            options={[
+              { value: 'all', label: 'Barchasi' },
+              { value: 'error', label: 'Faqat xatolar' },
+              { value: 'warning', label: 'Faqat ogohlantirish' },
+              { value: 'info', label: "Faqat ma'lumot" },
+            ]}
+          />
         }
       />
 
@@ -94,7 +100,7 @@ export default function ReportPage() {
       </div>
 
       {clean && (
-        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+        <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
           <b>Jadval qoidalarga to'liq mos.</b> Qattiq cheklovlarning birortasi ham buzilmagan: o'qituvchi
           to'qnashuvi yo'q, sinflar jadvalida bo'shliq yo'q, o'qituvchilarning oynalari belgilangan
           chegaradan oshmagan, haftalik soatlar o'quv rejaga to'liq mos.
@@ -104,28 +110,28 @@ export default function ReportPage() {
       <div className="mt-5 space-y-3">
         {grouped.map(([rule, list]) => (
           <div key={rule} className="card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2">
-              <h3 className="text-sm font-semibold text-slate-700">{RULE_LABELS[rule] ?? rule}</h3>
+            <div className="flex items-center justify-between border-b border-line bg-raised px-4 py-2">
+              <h3 className="text-sm font-semibold text-fg-2">{RULE_LABELS[rule] ?? rule}</h3>
               <span
                 className={`badge ${
                   list[0].level === 'error'
-                    ? 'bg-rose-100 text-rose-700'
+                    ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
                     : list[0].level === 'warning'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-slate-100 text-slate-600'
+                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                      : 'bg-line-soft text-fg-2'
                 }`}
               >
                 {list.length} ta
               </span>
             </div>
-            <ul className="max-h-72 divide-y divide-slate-50 overflow-y-auto">
+            <ul className="max-h-72 divide-y divide-line-soft overflow-y-auto">
               {list.slice(0, 200).map((v, i) => (
-                <li key={i} className="px-4 py-1.5 text-sm text-slate-600">
+                <li key={i} className="px-4 py-1.5 text-sm text-fg-2">
                   {v.message}
                 </li>
               ))}
               {list.length > 200 && (
-                <li className="px-4 py-1.5 text-xs text-slate-400">... yana {list.length - 200} ta</li>
+                <li className="px-4 py-1.5 text-xs text-faint">... yana {list.length - 200} ta</li>
               )}
             </ul>
           </div>

@@ -12,6 +12,8 @@ export interface TeacherConstraints {
   maxGap?: number
   /** Aniq haftalik soat (tarifikatsiyada qo'llanadi) */
   targetHours?: number
+  /** Metodbirlashmaning metodik kuni (agar belgilangan bo'lsa) */
+  pedagogicalDay?: number
 }
 
 export type TeacherConstraintMap = Record<string, TeacherConstraints>
@@ -23,13 +25,22 @@ export type TeacherConstraintMap = Record<string, TeacherConstraints>
 export function resolveTeacherConstraints(
   teachers: Teacher[],
   rules: Rule[],
+  /** Mutaxassislik -> metodik kun */
+  pedagogicalDays?: Record<string, number>,
 ): TeacherConstraintMap {
   const out: TeacherConstraintMap = {}
   for (const t of teachers) {
-    out[t.id] = {
+    const c: TeacherConstraints = {
       blockedDays: [...t.unavailableDays],
       blockedSlots: [],
     }
+    // Metodbirlashmaning metodik kuni — shu guruhning hamma o'qituvchisiga tegishli
+    const ped = pedagogicalDays?.[t.speciality]
+    if (ped !== undefined && ped >= 0) {
+      c.pedagogicalDay = ped
+      if (!c.blockedDays.includes(ped)) c.blockedDays.push(ped)
+    }
+    out[t.id] = c
   }
 
   for (const r of rules) {

@@ -4,3 +4,5 @@ scripts/.bench.mjs
 scripts/.bench-inc.mjs
 *.local
 .DS_Store
+scripts/.bench-seeds.mjs
+scripts/.bench-cat.mjs

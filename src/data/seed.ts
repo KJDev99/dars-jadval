@@ -1,4 +1,9 @@
-import type { SchoolClass, Settings, Teacher } from "../types";
+import type {
+  SchoolClass,
+  Settings,
+  Teacher,
+  TeacherCategory,
+} from "../types";
 import { makeRng } from "../lib/rng";
 
 /** Sinf harflari — o'zbek alifbosi tartibida */
@@ -136,6 +141,17 @@ const OTA_ERKAK = [
   "Sherzod",
 ];
 
+/**
+ * Toifalar taqsimoti — real maktabga yaqin nisbat:
+ * har to'rt o'qituvchidan taxminan bittasi oliy toifa, bittasi 1-toifa,
+ * bittasi 2-toifa va bittasi toifasiz bo'ladi.
+ */
+const CATEGORY_CYCLE: TeacherCategory[] = [
+  "oliy", "birinchi", "ikkinchi", "yoq",
+  "birinchi", "oliy", "yoq", "ikkinchi",
+  "birinchi", "ikkinchi", "oliy", "yoq",
+];
+
 /** Mutaxassislik guruhlari — 30 sinflik maktab uchun hisoblangan shtat */
 interface SpecSpec {
   speciality: string;
@@ -257,7 +273,8 @@ export function defaultTeachers(classes: SchoolClass[]): Teacher[] {
     return `O'qituvchi ${used.size + 1}`;
   };
 
-  const teachers: Teacher[] = [];
+  const teachers: Teacher[] = []
+  let catIdx = 0;
 
   // 1) Boshlang'ich sinf o'qituvchilari — har bir 1–4 sinfga bittadan
   const primaryClasses = classes.filter((c) => c.grade <= 4);
@@ -266,10 +283,12 @@ export function defaultTeachers(classes: SchoolClass[]): Teacher[] {
       id: `t-b-${c.id}`,
       fullName: makeName(),
       speciality: "Boshlang'ich ta'lim",
+      category: CATEGORY_CYCLE[catIdx++ % CATEGORY_CYCLE.length],
       subjectIds: [...PRIMARY_SUBJECTS],
       minHours: 4,
       maxHours: 24,
       homeroomClassId: c.id,
+      restrictedToHomeroom: true,
       unavailableDays: [],
     });
   }
@@ -282,6 +301,7 @@ export function defaultTeachers(classes: SchoolClass[]): Teacher[] {
         id: `t-f-${n++}`,
         fullName: makeName(),
         speciality: spec.speciality,
+        category: CATEGORY_CYCLE[catIdx++ % CATEGORY_CYCLE.length],
         subjectIds: [...spec.subjectIds],
         minHours: 4,
         maxHours: 24,
@@ -290,24 +310,62 @@ export function defaultTeachers(classes: SchoolClass[]): Teacher[] {
     }
   }
 
+  // 3) 5-sinfdan yuqori sinflarga sinf rahbari biriktiramiz.
+  //    Fan o'qituvchisi sinf rahbari bo'lsa ham boshqa sinflarga dars beraveradi.
+  const seniorClasses = classes.filter((c) => c.grade >= 5);
+  const candidates = teachers.filter(
+    (t) => !t.homeroomClassId && t.speciality !== "CHQBT",
+  );
+  seniorClasses.forEach((c, i) => {
+    const t = candidates[i % candidates.length];
+    if (t && !t.homeroomClassId) t.homeroomClassId = c.id;
+  });
+
   return teachers;
 }
+
+/**
+ * Metodbirlashmalarning metodik (pedagogik) kunlari.
+ * Shu kuni guruhning barcha o'qituvchilariga dars qo'yilmaydi.
+ * Kunlar guruhlar orasida taqsimlangan — bir kunga hammasi to'planib qolmasin.
+ *
+ * Boshlang'ich ta'lim guruhiga metodik kun berilmaydi: sinf rahbari o'z sinfining
+ * darslarining katta qismini o'zi o'tadi, kun bo'sh qolsa sinf jadvali buziladi.
+ */
+export const DEFAULT_PEDAGOGICAL_DAYS: Record<string, number> = {
+  "Chet tili (ingliz tili)": 1, // Seshanba
+  "Fizika va astronomiya": 1,
+  "Musiqa madaniyati": 1,
+  "Ona tili va adabiyot": 2, // Chorshanba
+  Matematika: 2,
+  Biologiya: 2,
+  Texnologiya: 2,
+  "Rus tili": 3, // Payshanba
+  "Informatika va AT": 3,
+  "Geografiya va iqtisodiyot": 3,
+  "Jismoniy tarbiya": 3,
+  "Tarix va huquq": 4, // Juma
+  Kimyo: 4,
+  "Tasviriy san'at va chizmachilik": 4,
+};
 
 export function defaultSettings(): Settings {
   return {
     schoolName: "14-son umumiy o‘rta ta’lim maktabi",
     maxPerDayByGrade: {
-      1: 5,
-      2: 5,
-      3: 5,
-      4: 5,
-      5: 6,
-      6: 6,
-      7: 6,
-      8: 6,
-      9: 6,
-      10: 6,
-      11: 6,
+      // Yuqori chegara — kunlar imkon qadar teng taqsimlanadi, chegaraga faqat
+      // metodik kun yoki bo'sh kun shartlari talab qilganda yaqinlashadi.
+      1: 6,
+      2: 6,
+      3: 6,
+      4: 6,
+      5: 7,
+      6: 7,
+      7: 7,
+      8: 7,
+      9: 7,
+      10: 7,
+      11: 7,
     },
     daysPrimary: 5,
     daysSenior: 6,
@@ -316,6 +374,9 @@ export function defaultSettings(): Settings {
     doubleLessonTolerance: 15,
     solverIterations: 400000,
     seed: 12345,
+    stavkaHours: 18,
+    theme: "system",
+    pedagogicalDays: { ...DEFAULT_PEDAGOGICAL_DAYS },
     stabilityWeight: 40,
   };
 }

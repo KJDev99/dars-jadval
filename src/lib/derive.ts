@@ -159,3 +159,33 @@ export function buildUnitsForClass(
 
   return { units, problems }
 }
+
+/* ───────────────────────── Stavka hisob-kitobi ───────────────────────── */
+
+/** Haftalik soat necha stavkaga teng */
+export function stavkaOf(hours: number, stavkaHours: number): number {
+  return stavkaHours > 0 ? hours / stavkaHours : 0
+}
+
+/** "1,06 stavka" ko'rinishidagi matn */
+export function formatStavka(hours: number, stavkaHours: number): string {
+  return stavkaOf(hours, stavkaHours).toFixed(2).replace('.', ',')
+}
+
+/* ─────────────── Reja va reja tashqarisidagi soatlar ─────────────── */
+
+/** Tayanch o'quv rejaga kiruvchi soatlar (Ma'naviyat soatisiz) */
+export function classPlanHours(cls: SchoolClass, ov: PlanOverrides): number {
+  return SUBJECTS.filter((s) => !s.outsidePlan).reduce(
+    (sum, s) => sum + effectiveHours(cls, s.id, ov),
+    0,
+  )
+}
+
+/** Reja tashqarisidagi soatlar (Ma'naviyat soati) */
+export function classExtraHours(cls: SchoolClass, ov: PlanOverrides): number {
+  return SUBJECTS.filter((s) => s.outsidePlan).reduce(
+    (sum, s) => sum + effectiveHours(cls, s.id, ov),
+    0,
+  )
+}

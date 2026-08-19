@@ -3,7 +3,8 @@
  * Ishga tushirish:  npm run bench
  */
 import { defaultClasses, defaultSettings, defaultTeachers } from '../src/data/seed'
-import { emptyOverrides, buildUnitsForClass, classTotalHours } from '../src/lib/derive'
+import { resolveTeacherConstraints } from '../src/lib/rules'
+import { emptyOverrides, buildUnitsForClass, classTotalHours, classPlanHours, classExtraHours } from '../src/lib/derive'
 import { autoAssign } from '../src/scheduler/assign'
 import { solve } from '../src/scheduler/solver'
 import { validateSchedule } from '../src/scheduler/validate'
@@ -17,13 +18,14 @@ const settings = defaultSettings()
 console.log('=== O‘QUV REJA TEKSHIRUVI ===')
 for (const g of [...new Set(classes.map((c) => c.grade))]) {
   const c = classes.find((x) => x.grade === g)!
-  const total = classTotalHours(c, ov)
+  const total = classPlanHours(c, ov)
+  const extra = classExtraHours(c, ov)
   const official = OFFICIAL_TOTALS[g]
-  console.log(`  ${g}-sinf: ${total} soat (rasmiy ${official}) ${total === official ? '✓' : '✗ FARQ!'}`)
+  console.log(`  ${g}-sinf: reja ${total} soat (rasmiy ${official}) ${total === official ? '✓' : '✗ FARQ!'}  + reja tashqarisi ${extra} soat`)
 }
 
 console.log('\n=== TARIFIKATSIYA ===')
-const asg = autoAssign(classes, teachers, ov, {}, false, settings.seed)
+const asg = autoAssign(classes, teachers, ov, {}, false, settings.seed, resolveTeacherConstraints(teachers, [], settings.pedagogicalDays), settings.stavkaHours)
 console.log(`  Sinflar: ${classes.length}, o‘qituvchilar: ${teachers.length}`)
 console.log(`  Biriktirishlar: ${Object.keys(asg.assignments).length}`)
 console.log(`  Muammolar: ${asg.problems.length}`)
@@ -43,7 +45,8 @@ console.log(
 
 console.log('\n=== JADVAL GENERATSIYASI ===')
 const t0 = Date.now()
-const res = solve({ classes, teachers, units, settings }, (pct) => {
+const tc = resolveTeacherConstraints(teachers, [], settings.pedagogicalDays)
+const res = solve({ classes, teachers, units, settings, teacherConstraints: tc }, (pct) => {
   if (Math.abs(pct * 100 - Math.round(pct * 100)) < 1e-9 && Math.round(pct * 100) % 25 === 0) {
     process.stdout.write(` ${Math.round(pct * 100)}%`)
   }
@@ -55,7 +58,7 @@ console.log(`  Xabar: ${res.stats.message}`)
 res.notes.forEach((n) => console.log('    · ' + n))
 
 console.log('\n=== TEKSHIRUV ===')
-const rep = validateSchedule({ classes, teachers, units, placements: res.placements, settings, ov })
+const rep = validateSchedule({ classes, teachers, units, placements: res.placements, settings, ov, teacherConstraints: tc })
 console.log(`  Xatolar: ${rep.errors}`)
 console.log(`  Ogohlantirishlar: ${rep.warnings}`)
 console.log(`  O‘qituvchi to‘qnashuvi: ${rep.teacherClashes}`)
@@ -86,4 +89,54 @@ for (const p of res.placements) {
 const DAYS = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh']
 for (let d = 0; d < 6; d++) {
   console.log(`  ${DAYS[d]}: ` + grid[d].filter(Boolean).map((s, i) => `${i + 1}.${s}`).join('  '))
+}
+
+/* ─── Sinf rahbari va Ma'naviyat soati ─────────────────────────────── */
+console.log('\n=== SINF RAHBARI VA MA’NAVIYAT SOATI ===')
+{
+  const hrOf = new Map(teachers.filter((t) => t.homeroomClassId).map((t) => [t.homeroomClassId!, t]))
+  console.log(`  Sinf rahbari biriktirilgan: ${hrOf.size}/${classes.length}`)
+
+  let ok = 0
+  const bad: string[] = []
+  for (const c of classes) {
+    const tid = asg.assignments[`${c.id}|manaviyat`]
+    const hr = hrOf.get(c.id)
+    if (tid && hr && tid === hr.id) ok++
+    else bad.push(`${c.grade}-${c.letter}`)
+  }
+  console.log(`  Ma'naviyat soatini sinf rahbari o'tadi: ${ok}/${classes.length}`)
+  if (bad.length) console.log('    ✗ ' + bad.join(', '))
+
+  const dup = [...hrOf.values()].length !== new Set([...hrOf.values()].map((t) => t.id)).size
+  console.log(`  Bir o'qituvchi bir nechta sinfga rahbarmi: ${dup ? '✗ HA' : 'yo‘q ✓'}`)
+
+  const sample = classes.filter((c) => [1, 5, 9].includes(c.grade) && c.letter === 'A')
+  for (const c of sample) {
+    const hr = hrOf.get(c.id)
+    const pl = res.placements.find((p) => p.unitId.startsWith(`${c.id}#manaviyat#`))
+    const DAYS = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh']
+    console.log(
+      `    ${c.grade}-${c.letter}: rahbar ${hr?.fullName ?? '—'} (${hr?.speciality ?? '—'}), ` +
+        `ma'naviyat ${pl ? DAYS[pl.day] + ' ' + (pl.period + 1) + '-soat' : 'joylashmagan'}`,
+    )
+  }
+}
+
+/* ─── Metodik kunlar ────────────────────────────────────────────────── */
+console.log('\n=== METODIK KUNLAR ===')
+{
+  const DAYS = ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba']
+  const byDay = new Map<number, string[]>()
+  for (const [spec, d] of Object.entries(settings.pedagogicalDays)) {
+    if (!byDay.has(d)) byDay.set(d, [])
+    byDay.get(d)!.push(spec)
+  }
+  for (const [d, list] of [...byDay.entries()].sort((a, b) => a[0] - b[0])) {
+    console.log(`  ${DAYS[d]}: ${list.join(', ')}`)
+  }
+  const noDay = [...new Set(teachers.map((t) => t.speciality))].filter(
+    (sp) => settings.pedagogicalDays[sp] === undefined,
+  )
+  console.log(`  Metodik kunsiz guruhlar: ${noDay.join(', ') || 'yo‘q'}`)
 }

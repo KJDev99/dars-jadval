@@ -1,4 +1,5 @@
-import type { Assignments, SchoolClass, Teacher } from '../types'
+import type { Assignments, SchoolClass, Teacher } from "../types";
+import { CATEGORY_RANK } from "../types";
 import { SUBJECTS, SUBJECT_BY_ID } from '../data/curriculum'
 import { asgKey, effectiveHours, type PlanOverrides } from '../lib/derive'
 import { effectiveLoadLimits, type TeacherConstraintMap } from '../lib/rules'
@@ -27,6 +28,7 @@ export function autoAssign(
   keepManual: boolean,
   seed = 7,
   constraints?: TeacherConstraintMap,
+  stavkaHours = 18,
 ): AssignResult {
   const rng = makeRng(seed)
   const limits = (t: Teacher) => effectiveLoadLimits(t, constraints?.[t.id])
@@ -66,6 +68,20 @@ export function autoAssign(
       if (assignments[key]) continue
 
       const homeroom = homeroomByClass.get(cls.id)
+
+      // Ma'naviyat soati — har doim o'sha sinfning rahbari o'tadi
+      if (s.homeroomOnly) {
+        if (homeroom) {
+          assignments[key] = homeroom.id
+          load[homeroom.id] += hours
+        } else {
+          problems.push(
+            cls.grade + '-' + cls.letter + ' — ' + s.name + ': sinfga rahbar biriktirilmagan.',
+          )
+        }
+        continue
+      }
+
       if (cls.grade <= 4 && s.primaryHomeroom && homeroom?.subjectIds.includes(s.id)) {
         assignments[key] = homeroom.id
         load[homeroom.id] += hours
@@ -76,12 +92,18 @@ export function autoAssign(
   }
 
   // 2) Qolgan fanlar — kamyob mutaxassislikdan boshlab taqsimlaymiz
-  const candidatesOf = (t: Task): Teacher[] =>
-    teachers.filter(
+  const candidatesOf = (t: Task): Teacher[] => {
+    // Ma'naviyat soatini faqat o'sha sinfning rahbari o'tadi
+    if (SUBJECT_BY_ID[t.subjectId]?.homeroomOnly) {
+      const hr = homeroomByClass.get(t.cls.id)
+      return hr ? [hr] : []
+    }
+    return teachers.filter(
       (te) =>
         te.subjectIds.includes(t.subjectId) &&
-        (!te.homeroomClassId || te.homeroomClassId === t.cls.id),
+        (!te.restrictedToHomeroom || te.homeroomClassId === t.cls.id),
     )
+  }
 
   const candCount = new Map<string, number>()
   for (const t of tasks) {
@@ -117,23 +139,31 @@ export function autoAssign(
       const newLoad = load[te.id] + task.hours
       if (newLoad > lim.max) continue
 
-      // Kam yuklangan o'qituvchi afzal
-      let score = newLoad / Math.max(1, lim.max)
+      /*
+       * Ustuvorlik tartibi (o'qituvchi toifasi bo'yicha):
+       *   1-bosqich — hali 1 stavka to'lmaganlar: oliy → 1-toifa → 2-toifa → toifasiz
+       *   2-bosqich — stavkasi to'lganlarga qolgan soatlar, yana o'sha tartibda
+       */
+      const tier = load[te.id] >= stavkaHours ? 1 : 0
+      let score = tier * 40 + CATEGORY_RANK[te.category ?? "yoq"] * 8
+
+      // Shu qatlam ichida kam yuklangan o'qituvchi afzal
+      score += (newLoad / Math.max(1, lim.max)) * 4
 
       // Aniq soat belgilangan bo'lsa — o'sha soatga to'ldirish ustuvor
-      if (lim.target !== undefined) score -= 0.5
+      if (lim.target !== undefined) score -= 20
 
       // Parallel sinflarda bir xil o'qituvchi bo'lgani yaxshi (metodik jihatdan)
       const gk = `${te.id}|${task.cls.grade}|${task.subjectId}`
-      if (teacherGradeSubject.has(gk)) score -= 0.18
+      if (teacherGradeSubject.has(gk)) score -= 1.6
 
       // Shu sinfda allaqachon dars beradigan o'qituvchi afzal (kam o'qituvchi = kam to'qnashuv)
       const ck = `${te.id}|${task.cls.id}`
-      if (teacherClassHours.has(ck)) score -= 0.06
+      if (teacherClassHours.has(ck)) score -= 0.5
 
       // Mutaxassisligi tor bo'lgan o'qituvchi afzal (universal o'qituvchi zaxirada qolsin)
-      score += te.subjectIds.length * 0.004
-      score += rng() * 0.02
+      score += te.subjectIds.length * 0.04
+      score += rng() * 0.2
 
       if (score < bestScore) {
         bestScore = score
@@ -184,7 +214,10 @@ export interface TransferItem {
   hours: number
 }
 
-/** `fromTeacherId` ning barcha (sinf, fan) yuklamalari */
+/** Faqat sinf rahbari o'tadigan fanmi (Ma'naviyat soati) — o'tkazib bo'lmaydi */
+export const isHomeroomOnly = (subjectId: string) => !!SUBJECT_BY_ID[subjectId]?.homeroomOnly
+
+/** Berilgan o'qituvchining barcha (sinf, fan) yuklamalari */
 export function teacherWorkload(
   teacherId: string,
   classes: SchoolClass[],
@@ -195,6 +228,7 @@ export function teacherWorkload(
   for (const c of classes) {
     for (const s of SUBJECTS) {
       if (assignments[asgKey(c.id, s.id)] !== teacherId) continue
+      if (s.homeroomOnly) continue // Ma'naviyat soati sinf rahbaridan ajralmaydi
       out.push({ classId: c.id, subjectId: s.id, hours: effectiveHours(c, s.id, ov) })
     }
   }

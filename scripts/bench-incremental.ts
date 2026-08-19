@@ -18,7 +18,7 @@ const settings = defaultSettings()
 const build = (asg: Record<string, string>) => classes.flatMap((c) => buildUnitsForClass(c, ov, asg).units)
 
 function report(label: string, units: any[], placements: Placement[], rules: Rule[], base?: Placement[]) {
-  const constraints = resolveTeacherConstraints(teachers, rules)
+  const constraints = resolveTeacherConstraints(teachers, rules, settings.pedagogicalDays)
   const rep = validateSchedule({ classes, teachers, units, placements, settings, ov, teacherConstraints: constraints })
   let moved = 0
   let kept = 0
@@ -46,9 +46,9 @@ function report(label: string, units: any[], placements: Placement[], rules: Rul
 
 /* ─── 1. Asosiy jadval ─────────────────────────────────────────────── */
 console.log('=== 1. ASOSIY JADVAL ===')
-const asg0 = autoAssign(classes, teachers, ov, {}, false, settings.seed).assignments
+const asg0 = autoAssign(classes, teachers, ov, {}, false, settings.seed, resolveTeacherConstraints(teachers, [], settings.pedagogicalDays), settings.stavkaHours).assignments
 const units0 = build(asg0)
-const base = solve({ classes, teachers, units: units0, settings, teacherConstraints: resolveTeacherConstraints(teachers, []) })
+const base = solve({ classes, teachers, units: units0, settings, teacherConstraints: resolveTeacherConstraints(teachers, [], settings.pedagogicalDays) })
 report('boshlang‘ich', units0, base.placements, [])
 
 const mkRule = (r: Partial<Rule> & { kind: Rule['kind'] }): Rule => ({
@@ -72,7 +72,7 @@ const rules1: Rule[] = [
 ]
 busy.forEach((t, i) => console.log(`  · ${t.fullName} (${loadOf(t)} soat) — ${['Chorshanba', 'Shanba', 'Seshanba'][i]} bo‘sh`))
 
-const c1 = resolveTeacherConstraints(teachers, rules1)
+const c1 = resolveTeacherConstraints(teachers, rules1, settings.pedagogicalDays)
 const inc1 = solve({ classes, teachers, units: units0, settings, baseline: base.placements, teacherConstraints: c1 })
 report('inkremental (barqarorlik 60)', units0, inc1.placements, rules1, base.placements)
 
@@ -99,7 +99,7 @@ console.log(
 )
 const asg2 = applyTransfer(asg0, items, to.id)
 const units2 = build(asg2)
-const c2 = resolveTeacherConstraints(teachers, rules1)
+const c2 = resolveTeacherConstraints(teachers, rules1, settings.pedagogicalDays)
 const inc2 = solve({ classes, teachers, units: units2, settings, baseline: inc1.placements, teacherConstraints: c2 })
 report('o‘tkazishdan keyin (inkremental)', units2, inc2.placements, rules1, inc1.placements)
 

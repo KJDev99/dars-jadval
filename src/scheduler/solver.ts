@@ -128,6 +128,12 @@ export function solve(input: SolveInput, onProgress?: (pct: number, cost: number
     if (c?.maxGap !== undefined) tMaxGap[ti] = c.maxGap
   })
 
+  /** Dars shu kunga qo'yilishi mumkinmi — biror o'qituvchisi band bo'lmasa */
+  function unitFitsDay(ui: number, d: number): boolean {
+    for (const t of unitTeachers[ui]) if (teacherDayFullyBlocked[t][d]) return false
+    return true
+  }
+
   /** O'qituvchi shu kunda umuman ishlay oladimi (kun bo'yicha taqsimlashda) */
   const teacherDayFullyBlocked: boolean[][] = teachers.map((_, ti) =>
     Array.from({ length: D }, (_, d) => {
@@ -243,23 +249,33 @@ export function solve(input: SolveInput, onProgress?: (pct: number, cost: number
       for (const [key, arr] of ordered) {
         const usedDays: number[] = []
         for (const ui of arr) {
+          /*
+           * Ikki bosqichli tanlov:
+           *   1-urinish — faqat o'qituvchisi bo'sh bo'lgan kunlar (qattiq filtr),
+           *   2-urinish — iloji bo'lmasa, sig'imi bor istalgan kun.
+           * Metodik kun va bo'sh kun shartlari shu yerda hal bo'ladi — keyingi
+           * bosqichlarda darsning kunini o'zgartirish ancha qimmatga tushadi.
+           */
           let bestD = -1
-          let bestScore = -Infinity
-          for (let d = 0; d < dc; d++) {
-            if (dayCount[d] >= clsMaxPerDay[ci]) continue
-            let score = 0
-            score -= (dayKeys[d].get(key) ?? 0) * 300
-            // Teng taqsimlash — lekin band kunni chetlab o'tish uchun buzilishi mumkin
-            score -= Math.max(0, dayCount[d] - target[d] + 1) * 25
-            score += (target[d] - dayCount[d]) * 4
-            let minDist = 99
-            for (const ud of usedDays) minDist = Math.min(minDist, Math.abs(ud - d))
-            score += Math.min(minDist, 3) * 6
-            for (const t of unitTeachers[ui]) if (teacherDayFullyBlocked[t][d]) score -= 500
-            score += rng() * 2
-            if (score > bestScore) {
-              bestScore = score
-              bestD = d
+          for (let strict = 1; strict >= 0 && bestD < 0; strict--) {
+            let bestScore = -Infinity
+            for (let d = 0; d < dc; d++) {
+              if (dayCount[d] >= clsMaxPerDay[ci]) continue
+              if (strict && !unitFitsDay(ui, d)) continue
+              let score = 0
+              score -= (dayKeys[d].get(key) ?? 0) * 300
+              // Teng taqsimlash — lekin band kunni chetlab o'tish uchun buzilishi mumkin
+              score -= Math.max(0, dayCount[d] - target[d] + 1) * 25
+              score += (target[d] - dayCount[d]) * 4
+              let minDist = 99
+              for (const ud of usedDays) minDist = Math.min(minDist, Math.abs(ud - d))
+              score += Math.min(minDist, 3) * 6
+              if (!strict && !unitFitsDay(ui, d)) score -= 500
+              score += rng() * 2
+              if (score > bestScore) {
+                bestScore = score
+                bestD = d
+              }
             }
           }
           if (bestD < 0) {
@@ -349,7 +365,8 @@ export function solve(input: SolveInput, onProgress?: (pct: number, cost: number
       const deferred: number[] = []
       for (const ui of withBase) {
         const d = baseDay[ui]
-        if (dayCount[d] < target[d]) place(ui, d)
+        // Eski kun endi band bo'lib qolgan bo'lsa (yangi metodik kun/bo'sh kun) — ko'chiramiz
+        if (dayCount[d] < target[d] && unitFitsDay(ui, d)) place(ui, d)
         else deferred.push(ui)
       }
 
@@ -359,16 +376,19 @@ export function solve(input: SolveInput, onProgress?: (pct: number, cost: number
       for (const ui of rest) {
         if (assignedDay.has(ui)) continue
         let bestD = -1
-        let bestScore = -Infinity
-        for (let d = 0; d < dc; d++) {
-          if (dayCount[d] >= clsMaxPerDay[ci]) continue
-          let score = (target[d] - dayCount[d]) * 4
-          score -= Math.max(0, dayCount[d] - target[d] + 1) * 25
-          score -= (dayKeys[d].get(unitKey[ui]) ?? 0) * 300
-          if (baseDay[ui] === d) score += 60
-          for (const t of unitTeachers[ui]) if (teacherDayFullyBlocked[t][d]) score -= 500
-          score += rng() * 2
-          if (score > bestScore) { bestScore = score; bestD = d }
+        for (let strict = 1; strict >= 0 && bestD < 0; strict--) {
+          let bestScore = -Infinity
+          for (let d = 0; d < dc; d++) {
+            if (dayCount[d] >= clsMaxPerDay[ci]) continue
+            if (strict && !unitFitsDay(ui, d)) continue
+            let score = (target[d] - dayCount[d]) * 4
+            score -= Math.max(0, dayCount[d] - target[d] + 1) * 25
+            score -= (dayKeys[d].get(unitKey[ui]) ?? 0) * 300
+            if (baseDay[ui] === d) score += 60
+            if (!strict && !unitFitsDay(ui, d)) score -= 500
+            score += rng() * 2
+            if (score > bestScore) { bestScore = score; bestD = d }
+          }
         }
         if (bestD < 0) {
           for (let d = 0; d < dc; d++) if (dayCount[d] < clsMaxPerDay[ci]) { bestD = d; break }
@@ -499,34 +519,25 @@ export function solve(input: SolveInput, onProgress?: (pct: number, cost: number
 
   let cost = fullCost()
 
-  /* ─── 3-BOSQICH: lokal qidiruv (simulated annealing) ────────────────── */
+  /* ─── 3-BOSQICH: lokal qidiruv ──────────────────────────────────────── */
   const iterations = Math.max(10000, settings.solverIterations)
   // Mavjud jadvaldan boshlaganda past haroratdan boshlaymiz — jadval "aralashib" ketmasin
   const Tstart = useBaseline ? 2.5 : 12
   const Tend = 0.04
-  const decay = Math.pow(Tend / Tstart, 1 / iterations)
   let temp = Tstart
+  let decay = Math.pow(Tend / Tstart, 1 / iterations)
+  let iterOffset = 0
+  let iterTotal = iterations
 
   const pairs = new Set<number>()
   const affected = (t: number, d: number) => pairs.add(t * D + d)
-
-  let hot: number[] = []
-  const badTD = new Uint8Array(T * D)
-  function refreshHot() {
-    hot = []
-    badTD.fill(0)
-    for (let t = 0; t < T; t++) {
-      for (let d = 0; d < D; d++) if (teacherDayCost(t, d) > 0) badTD[t * D + d] = 1
-    }
-    for (let ui = 0; ui < U; ui++) {
-      if (locked[ui]) continue
-      const d = uDay[ui]
-      for (const t of unitTeachers[ui]) {
-        if (badTD[t * D + d]) { hot.push(ui); break }
-      }
-    }
+  const pairsCost = () => {
+    let c = 0
+    for (const key of pairs) c += teacherDayCost(Math.floor(key / D), key % D)
+    return c
   }
-  refreshHot()
+
+  /* ── Uchta amal: bajarish, o'lchash, orqaga qaytarish ─────────────── */
 
   function swapSameDay(ci: number, d: number, p1: number, p2: number) {
     const a = grid[ci][d][p1]
@@ -548,8 +559,10 @@ export function solve(input: SolveInput, onProgress?: (pct: number, cost: number
     for (const t of unitTeachers[b]) slot[sIdx(t, d2, p2)]--
     grid[ci][d1][p1] = b
     grid[ci][d2][p2] = a
-    uDay[a] = d2; uPeriod[a] = p2
-    uDay[b] = d1; uPeriod[b] = p1
+    uDay[a] = d2
+    uPeriod[a] = p2
+    uDay[b] = d1
+    uPeriod[b] = p1
     for (const t of unitTeachers[a]) slot[sIdx(t, d2, p2)]++
     for (const t of unitTeachers[b]) slot[sIdx(t, d1, p1)]++
   }
@@ -576,6 +589,59 @@ export function solve(input: SolveInput, onProgress?: (pct: number, cost: number
     for (const t of unitTeachers[u]) slot[sIdx(t, d2, p2)]++
   }
 
+  /**
+   * Darsni boshqa kunning ANIQ bir soatiga ko'chirish (d1 !== d2).
+   * Ikkala kunda ham ketma-ketlik saqlanadi.
+   * Teskarisi: moveUnit(ci, d2, p2, d1, p1).
+   */
+  function moveUnit(ci: number, d1: number, p1: number, d2: number, p2: number) {
+    const A = grid[ci][d1]
+    const B = grid[ci][d2]
+    const u = A[p1]
+    for (let k = p1; k < A.length; k++) for (const t of unitTeachers[A[k]]) slot[sIdx(t, d1, k)]--
+    A.splice(p1, 1)
+    for (let k = p1; k < A.length; k++) {
+      uPeriod[A[k]] = k
+      for (const t of unitTeachers[A[k]]) slot[sIdx(t, d1, k)]++
+    }
+    for (let k = p2; k < B.length; k++) for (const t of unitTeachers[B[k]]) slot[sIdx(t, d2, k)]--
+    B.splice(p2, 0, u)
+    uDay[u] = d2
+    for (let k = p2; k < B.length; k++) {
+      uPeriod[B[k]] = k
+      for (const t of unitTeachers[B[k]]) slot[sIdx(t, d2, k)]++
+    }
+  }
+
+  /** Ko'chirish amalining narx o'zgarishi */
+  function deltaMove(ci: number, d1: number, p1: number, d2: number, p2: number, keep: boolean): number {
+    const A = grid[ci][d1]
+    const B = grid[ci][d2]
+    pairs.clear()
+    for (let k = p1; k < A.length; k++) for (const t of unitTeachers[A[k]]) affected(t, d1)
+    for (let k = p2; k < B.length; k++) for (const t of unitTeachers[B[k]]) affected(t, d2)
+    for (const t of unitTeachers[A[p1]]) {
+      affected(t, d1)
+      affected(t, d2)
+    }
+    const c0 = pairsCost() + classDayCost(ci, d1) + classDayCost(ci, d2)
+    moveUnit(ci, d1, p1, d2, p2)
+    const c1 = pairsCost() + classDayCost(ci, d1) + classDayCost(ci, d2)
+    if (!keep) moveUnit(ci, d2, p2, d1, p1)
+    return c1 - c0
+  }
+
+  /** Ko'chirishga qulflangan darslar to'sqinlik qilmaydimi */
+  function moveAllowed(ci: number, d1: number, p1: number, d2: number, p2: number): boolean {
+    if (d1 === d2 || grid[ci][d2].length >= clsMaxPerDay[ci] || grid[ci][d1].length <= 1) return false
+    const A = grid[ci][d1]
+    const B = grid[ci][d2]
+    if (locked[A[p1]]) return false
+    for (let k = p1 + 1; k < A.length; k++) if (locked[A[k]]) return false
+    for (let k = p2; k < B.length; k++) if (locked[B[k]]) return false
+    return true
+  }
+
   /** Yuqoridagi amalning teskarisi */
   function moveUnitBack(ci: number, d2: number, d1: number, p1: number) {
     const A = grid[ci][d1]
@@ -592,115 +658,319 @@ export function solve(input: SolveInput, onProgress?: (pct: number, cost: number
     }
   }
 
+  /* ── Narx o'zgarishini hisoblash (amalni bajarib, keyin qaytarib) ─── */
+
+  /** @returns narx o'zgarishi; `keep` bo'lsa amal joyida qoladi */
+  function deltaSameDay(ci: number, d: number, p1: number, p2: number, keep: boolean): number {
+    const a = grid[ci][d][p1]
+    const b = grid[ci][d][p2]
+    pairs.clear()
+    for (const t of unitTeachers[a]) affected(t, d)
+    for (const t of unitTeachers[b]) affected(t, d)
+    const before = pairsCost() + unitCost(a, d, p1) + unitCost(b, d, p2)
+    swapSameDay(ci, d, p1, p2)
+    const after = pairsCost() + unitCost(a, d, p2) + unitCost(b, d, p1)
+    if (!keep) swapSameDay(ci, d, p1, p2)
+    return after - before
+  }
+
+  function deltaCrossDay(ci: number, d1: number, p1: number, d2: number, p2: number, keep: boolean): number {
+    const a = grid[ci][d1][p1]
+    const b = grid[ci][d2][p2]
+    pairs.clear()
+    for (const t of unitTeachers[a]) {
+      affected(t, d1)
+      affected(t, d2)
+    }
+    for (const t of unitTeachers[b]) {
+      affected(t, d1)
+      affected(t, d2)
+    }
+    const before =
+      pairsCost() + unitCost(a, d1, p1) + unitCost(b, d2, p2) + classDayDupCost(ci, d1) + classDayDupCost(ci, d2)
+    swapCrossDay(ci, d1, p1, d2, p2)
+    const after =
+      pairsCost() + unitCost(a, d2, p2) + unitCost(b, d1, p1) + classDayDupCost(ci, d1) + classDayDupCost(ci, d2)
+    if (!keep) swapCrossDay(ci, d2, p2, d1, p1)
+    return after - before
+  }
+
+  function deltaRelocate(ci: number, d1: number, p1: number, d2: number, keep: boolean): number {
+    const A = grid[ci][d1]
+    pairs.clear()
+    for (let k = p1; k < A.length; k++) for (const t of unitTeachers[A[k]]) affected(t, d1)
+    for (const t of unitTeachers[A[p1]]) affected(t, d2)
+    const before = pairsCost() + classDayCost(ci, d1) + classDayCost(ci, d2)
+    moveUnitToDayEnd(ci, d1, p1, d2)
+    const after = pairsCost() + classDayCost(ci, d1) + classDayCost(ci, d2)
+    if (!keep) moveUnitBack(ci, d2, d1, p1)
+    return after - before
+  }
+
+  /* ── Muammoli darslar ro'yxati ────────────────────────────────────── */
+  let hot: number[] = []
+  const badTD = new Uint8Array(T * D)
+  function refreshHot() {
+    hot = []
+    badTD.fill(0)
+    for (let t = 0; t < T; t++) {
+      for (let d = 0; d < D; d++) if (teacherDayCost(t, d) > 0) badTD[t * D + d] = 1
+    }
+    for (let ui = 0; ui < U; ui++) {
+      if (locked[ui]) continue
+      const d = uDay[ui]
+      for (const t of unitTeachers[ui]) {
+        if (badTD[t * D + d]) {
+          hot.push(ui)
+          break
+        }
+      }
+    }
+  }
+  refreshHot()
+
+  /** Qattiq cheklov buzilishlari soni */
+  function countHard(): number {
+    let n = 0
+    for (let t = 0; t < T; t++) {
+      for (let d = 0; d < D; d++) {
+        let first = -1
+        let last = -1
+        let occupied = 0
+        for (let p = 0; p < P; p++) {
+          const k = slot[sIdx(t, d, p)]
+          if (k === 0) continue
+          if (k > 1) n += k - 1
+          if (blockedSlot[sIdx(t, d, p)]) n += k
+          if (first < 0) first = p
+          last = p
+          occupied++
+        }
+        if (occupied === 0) continue
+        const gaps = last - first + 1 - occupied
+        if (gaps > tMaxGap[t]) n += gaps - tMaxGap[t]
+      }
+    }
+    return n
+  }
+
   const progressStep = Math.floor(iterations / 100) || 1
 
-  for (let it = 0; it < iterations; it++) {
-    temp *= decay
-    if (it % progressStep === 0) onProgress?.(it / iterations, cost)
-    if (it % 4000 === 0 && it > 0) refreshHot()
+  /* ── Tasodifiy qidiruv (simulated annealing) ──────────────────────── */
+  function anneal(iters: number, t0: number) {
+    temp = t0
+    decay = Math.pow(Tend / t0, 1 / iters)
 
-    let ci: number, d1: number
-    if (hot.length > 0 && rng() < 0.75) {
-      const ui = hot[Math.floor(rng() * hot.length)]
-      ci = classIdx.get(units[ui].classId)!
-      d1 = uDay[ui]
-    } else {
-      ci = Math.floor(rng() * C)
-      d1 = Math.floor(rng() * clsDays[ci])
+    for (let it = 0; it < iters; it++) {
+      temp *= decay
+      if (it % progressStep === 0) onProgress?.(Math.min(0.98, (iterOffset + it) / iterTotal), cost)
+      if (it % 4000 === 0 && it > 0) refreshHot()
+
+      let ci: number
+      let d1: number
+      if (hot.length > 0 && rng() < 0.75) {
+        const ui = hot[Math.floor(rng() * hot.length)]
+        ci = classIdx.get(units[ui].classId)!
+        d1 = uDay[ui]
+      } else {
+        ci = Math.floor(rng() * C)
+        d1 = Math.floor(rng() * clsDays[ci])
+      }
+      if (grid[ci][d1].length === 0) continue
+
+      const roll = rng()
+      const accept = (delta: number) => delta <= 0 || rng() < Math.exp(-delta / temp)
+
+      if (roll < 0.18 && clsDays[ci] > 1) {
+        // Boshqa kunga ko'chirish
+        const d2 = Math.floor(rng() * clsDays[ci])
+        if (d2 === d1) continue
+        const A = grid[ci][d1]
+        if (A.length <= 1 || grid[ci][d2].length >= clsMaxPerDay[ci]) continue
+        const p1 = Math.floor(rng() * A.length)
+        if (locked[A[p1]]) continue
+        let blocked = false
+        for (let k = p1 + 1; k < A.length; k++) if (locked[A[k]]) { blocked = true; break }
+        if (blocked) continue
+
+        const delta = deltaRelocate(ci, d1, p1, d2, true)
+        if (accept(delta)) cost += delta
+        else moveUnitBack(ci, d2, d1, p1)
+      } else if (roll < 0.5 && clsDays[ci] > 1) {
+        // Ikki kundagi darslarni almashtirish
+        const d2 = Math.floor(rng() * clsDays[ci])
+        if (d2 === d1 || grid[ci][d2].length === 0) continue
+        const p1 = Math.floor(rng() * grid[ci][d1].length)
+        const p2 = Math.floor(rng() * grid[ci][d2].length)
+        const a = grid[ci][d1][p1]
+        const b = grid[ci][d2][p2]
+        if (locked[a] || locked[b] || unitKey[a] === unitKey[b]) continue
+
+        const delta = deltaCrossDay(ci, d1, p1, d2, p2, true)
+        if (accept(delta)) cost += delta
+        else swapCrossDay(ci, d2, p2, d1, p1)
+      } else {
+        // Bir kun ichida soatlarni almashtirish
+        const len = grid[ci][d1].length
+        if (len < 2) continue
+        const p1 = Math.floor(rng() * len)
+        const p2 = Math.floor(rng() * len)
+        if (p1 === p2) continue
+        if (locked[grid[ci][d1][p1]] || locked[grid[ci][d1][p2]]) continue
+
+        const delta = deltaSameDay(ci, d1, p1, p2, true)
+        if (accept(delta)) cost += delta
+        else swapSameDay(ci, d1, p1, p2)
+      }
     }
-    if (grid[ci][d1].length === 0) continue
+    iterOffset += iters
+  }
 
-    const roll = rng()
-    const relocate = roll < 0.18 && clsDays[ci] > 1
-    const crossDay = !relocate && roll < 0.5 && clsDays[ci] > 1
-    pairs.clear()
+  /*
+   * ── Tuzatish bosqichi ────────────────────────────────────────────────
+   * Tasodifiy qidiruvdan farqli o'laroq bu yerda har bir muammoli dars uchun
+   * BARCHA mumkin bo'lgan ko'chirishlar to'liq ko'rib chiqiladi va eng yaxshisi
+   * tanlanadi. Shu sababli lokal minimumda qolib ketgan buzilishlar ham tuzatiladi.
+   */
+  interface Move {
+    kind: 'same' | 'cross' | 'move'
+    d1: number
+    p1: number
+    d2: number
+    p2: number
+    delta: number
+  }
 
-    if (relocate) {
-      /* ── Darsni boshqa kunga ko'chirish (kun yuklamasi o'zgaradi) ── */
-      const d2 = Math.floor(rng() * clsDays[ci])
+  /** Bitta dars uchun barcha mumkin bo'lgan ko'chirishlarni narxi bilan sanab chiqadi */
+  function scanMoves(ui: number): Move[] {
+    const out: Move[] = []
+    if (locked[ui]) return out
+    const ci = classIdx.get(units[ui].classId)!
+    const d1 = uDay[ui]
+    const p1 = uPeriod[ui]
+    const A = grid[ci][d1]
+
+    // Shu kun ichida almashtirish
+    for (let p2 = 0; p2 < A.length; p2++) {
+      if (p2 === p1 || locked[A[p2]]) continue
+      out.push({ kind: 'same', d1, p1, d2: d1, p2, delta: deltaSameDay(ci, d1, p1, p2, false) })
+    }
+
+    for (let d2 = 0; d2 < clsDays[ci]; d2++) {
       if (d2 === d1) continue
-      const A = grid[ci][d1]
       const B = grid[ci][d2]
-      if (A.length <= 1 || B.length >= clsMaxPerDay[ci]) continue
-      const p1 = Math.floor(rng() * A.length)
-      const u = A[p1]
-      if (locked[u]) continue
-      // Suriladigan darslar orasida qulflangani bo'lmasin
-      let blocked = false
-      for (let k = p1 + 1; k < A.length; k++) if (locked[A[k]]) { blocked = true; break }
-      if (blocked) continue
-
-      for (let k = p1; k < A.length; k++) for (const t of unitTeachers[A[k]]) affected(t, d1)
-      for (const t of unitTeachers[u]) affected(t, d2)
-
-      let before = 0
-      for (const key of pairs) before += teacherDayCost(Math.floor(key / D), key % D)
-      before += classDayCost(ci, d1) + classDayCost(ci, d2)
-
-      moveUnitToDayEnd(ci, d1, p1, d2)
-
-      let after = 0
-      for (const key of pairs) after += teacherDayCost(Math.floor(key / D), key % D)
-      after += classDayCost(ci, d1) + classDayCost(ci, d2)
-
-      const delta = after - before
-      if (delta <= 0 || rng() < Math.exp(-delta / temp)) cost += delta
-      else moveUnitBack(ci, d2, d1, p1)
-    } else if (!crossDay) {
-      const len = grid[ci][d1].length
-      if (len < 2) continue
-      const p1 = Math.floor(rng() * len)
-      const p2 = Math.floor(rng() * len)
-      if (p1 === p2) continue
-      const a = grid[ci][d1][p1]
-      const b = grid[ci][d1][p2]
-      if (locked[a] || locked[b]) continue
-
-      for (const t of unitTeachers[a]) affected(t, d1)
-      for (const t of unitTeachers[b]) affected(t, d1)
-
-      let before = 0
-      for (const key of pairs) before += teacherDayCost(Math.floor(key / D), key % D)
-      before += unitCost(a, d1, p1) + unitCost(b, d1, p2)
-
-      swapSameDay(ci, d1, p1, p2)
-
-      let after = 0
-      for (const key of pairs) after += teacherDayCost(Math.floor(key / D), key % D)
-      after += unitCost(a, d1, p2) + unitCost(b, d1, p1)
-
-      const delta = after - before
-      if (delta <= 0 || rng() < Math.exp(-delta / temp)) cost += delta
-      else swapSameDay(ci, d1, p1, p2)
-    } else {
-      const d2 = Math.floor(rng() * clsDays[ci])
-      if (d2 === d1 || grid[ci][d2].length === 0) continue
-      const p1 = Math.floor(rng() * grid[ci][d1].length)
-      const p2 = Math.floor(rng() * grid[ci][d2].length)
-      const a = grid[ci][d1][p1]
-      const b = grid[ci][d2][p2]
-      if (locked[a] || locked[b]) continue
-      if (unitKey[a] === unitKey[b]) continue
-
-      for (const t of unitTeachers[a]) { affected(t, d1); affected(t, d2) }
-      for (const t of unitTeachers[b]) { affected(t, d1); affected(t, d2) }
-
-      let before = 0
-      for (const key of pairs) before += teacherDayCost(Math.floor(key / D), key % D)
-      before += unitCost(a, d1, p1) + unitCost(b, d2, p2)
-      before += classDayDupCost(ci, d1) + classDayDupCost(ci, d2)
-
-      swapCrossDay(ci, d1, p1, d2, p2)
-
-      let after = 0
-      for (const key of pairs) after += teacherDayCost(Math.floor(key / D), key % D)
-      after += unitCost(a, d2, p2) + unitCost(b, d1, p1)
-      after += classDayDupCost(ci, d1) + classDayDupCost(ci, d2)
-
-      const delta = after - before
-      if (delta <= 0 || rng() < Math.exp(-delta / temp)) cost += delta
-      else swapCrossDay(ci, d2, p2, d1, p1)
+      // Boshqa kundagi dars bilan almashtirish
+      for (let p2 = 0; p2 < B.length; p2++) {
+        if (locked[B[p2]] || unitKey[B[p2]] === unitKey[ui]) continue
+        out.push({ kind: 'cross', d1, p1, d2, p2, delta: deltaCrossDay(ci, d1, p1, d2, p2, false) })
+      }
+      // Boshqa kunning istalgan soatiga ko'chirish
+      for (let p2 = 0; p2 <= B.length; p2++) {
+        if (!moveAllowed(ci, d1, p1, d2, p2)) continue
+        out.push({ kind: 'move', d1, p1, d2, p2, delta: deltaMove(ci, d1, p1, d2, p2, false) })
+      }
     }
+    return out
+  }
+
+  function applyMove(ci: number, m: Move) {
+    if (m.kind === 'same') deltaSameDay(ci, m.d1, m.p1, m.p2, true)
+    else if (m.kind === 'cross') deltaCrossDay(ci, m.d1, m.p1, m.d2, m.p2, true)
+    else deltaMove(ci, m.d1, m.p1, m.d2, m.p2, true)
+  }
+
+  function undoMove(ci: number, m: Move) {
+    if (m.kind === 'same') swapSameDay(ci, m.d1, m.p1, m.p2)
+    else if (m.kind === 'cross') swapCrossDay(ci, m.d2, m.p2, m.d1, m.p1)
+    else moveUnit(ci, m.d2, m.p2, m.d1, m.p1)
+  }
+
+  /*
+   * ── Tuzatish bosqichi ────────────────────────────────────────────────
+   * Tasodifiy qidiruvdan farqli o'laroq bu yerda har bir muammoli dars uchun
+   * BARCHA mumkin bo'lgan ko'chirishlar to'liq ko'rib chiqiladi.
+   *
+   * Bir qadamda yechilmaydigan holatlar ham bor. Masalan o'qituvchiga dushanba
+   * 1-soatni bo'shatish uchun avval sinfning dushanbadagi bitta darsini boshqa
+   * kunga surib joy ochish, keyin boshqa o'qituvchining darsini o'sha 1-soatga
+   * olib kelish kerak. Shuning uchun bir qadam yordam bermasa, ikki qadamli
+   * zanjir ham sinab ko'riladi.
+   */
+  function repair(maxPasses = 30, deep = true): void {
+    for (let pass = 0; pass < maxPasses; pass++) {
+      refreshHot()
+      if (hot.length === 0) return
+      let improved = false
+
+      for (const ui of hot) {
+        if (locked[ui]) continue
+        const ci = classIdx.get(units[ui].classId)!
+        const moves = scanMoves(ui)
+        if (moves.length === 0) continue
+
+        moves.sort((a, b) => a.delta - b.delta)
+        const best = moves[0]
+
+        if (best.delta < -1e-6) {
+          applyMove(ci, best)
+          cost += best.delta
+          improved = true
+          continue
+        }
+        if (!deep) continue
+
+        /*
+         * Ikki qadamli zanjir: birinchi qadam yomonlashtirsa ham, ikkinchisi qoplasa — qabul.
+         * Ikkinchi qadam faqat shu dars uchun emas, birinchi qadam tekkan kunlardagi
+         * boshqa darslar uchun ham qidiriladi — ko'pincha muammo "qo'shni" darsda hal bo'ladi.
+         */
+        for (const m1 of moves.slice(0, 12)) {
+          if (m1.delta > 1500) break // juda qimmat boshlanish — foydasi yo'q
+          applyMove(ci, m1)
+
+          const touched = new Set<number>([ui])
+          for (const d of [m1.d1, m1.d2]) for (const x of grid[ci][d]) touched.add(x)
+
+          let best2: Move | null = null
+          let best2Ci = ci
+          for (const uj of touched) {
+            if (locked[uj]) continue
+            const cj = classIdx.get(units[uj].classId)!
+            for (const m2 of scanMoves(uj)) {
+              if (!best2 || m2.delta < best2.delta) {
+                best2 = m2
+                best2Ci = cj
+              }
+            }
+          }
+
+          if (best2 && m1.delta + best2.delta < -1e-6) {
+            applyMove(best2Ci, best2)
+            cost += m1.delta + best2.delta
+            improved = true
+            break
+          }
+          undoMove(ci, m1)
+        }
+      }
+
+      if (!improved) return
+    }
+  }
+
+  anneal(iterations, Tstart)
+  repair()
+
+  /*
+   * Buzilish qolgan bo'lsa — jadvalni "qayta qizdirib" qisqaroq bosqichlarni
+   * takrorlaymiz, so'ng yana to'liq tuzatish bosqichini o'tkazamiz.
+   */
+  for (let round = 0; round < 5 && countHard() > 0; round++) {
+    const extra = Math.max(20000, Math.floor(iterations / 3))
+    iterTotal += extra
+    // Har bosqichda harorat biroz o'zgaradi — bir xil lokal minimumga qaytib qolmaslik uchun
+    anneal(extra, 1.2 + round * 0.6)
+    repair()
   }
 
   cost = fullCost()

@@ -20,6 +20,10 @@ export interface Subject {
   weight: number
   /** Boshlang'ich sinflarda (1–4) sinf rahbari o'qitadigan fanmi */
   primaryHomeroom: boolean
+  /** Faqat sinf rahbari o'z sinfida o'tadigan fan (masalan Ma'naviyat soati) */
+  homeroomOnly?: boolean
+  /** Tayanch o'quv rejadan tashqari fan — rasmiy soat bilan solishtirishda hisobga olinmaydi */
+  outsidePlan?: boolean
   color: string
 }
 
@@ -32,19 +36,57 @@ export interface SchoolClass {
   studentsCount?: number
 }
 
+/**
+ * O'qituvchining malaka toifasi (darajasi).
+ * Dars soatlari shu tartibda taqsimlanadi: avval har biriga 1 stavka, keyin qolgan soatlar.
+ */
+export type TeacherCategory = 'oliy' | 'birinchi' | 'ikkinchi' | 'yoq'
+
+export const CATEGORY_LABELS: Record<TeacherCategory, string> = {
+  oliy: 'Oliy toifa',
+  birinchi: '1-toifa',
+  ikkinchi: '2-toifa',
+  yoq: 'Toifasiz',
+}
+
+export const CATEGORY_SHORT: Record<TeacherCategory, string> = {
+  oliy: 'Oliy',
+  birinchi: '1-t',
+  ikkinchi: '2-t',
+  yoq: '—',
+}
+
+/** Ustuvorlik tartibi: 0 eng yuqori */
+export const CATEGORY_RANK: Record<TeacherCategory, number> = {
+  oliy: 0,
+  birinchi: 1,
+  ikkinchi: 2,
+  yoq: 3,
+}
+
+export const CATEGORY_ORDER: TeacherCategory[] = ['oliy', 'birinchi', 'ikkinchi', 'yoq']
+
 export interface Teacher {
   id: string
   fullName: string
   /** Mutaxassislik nomi (ko'rsatish uchun) */
   speciality: string
+  /** Malaka toifasi — dars taqsimotida ustuvorlikni belgilaydi */
+  category: TeacherCategory
   /** O'qita oladigan fanlar */
   subjectIds: string[]
   /** Haftalik minimal yuklama (soat) */
   minHours: number
   /** Haftalik maksimal yuklama (soat) */
   maxHours: number
-  /** Sinf rahbari bo'lgan sinf (boshlang'ich sinflar uchun majburiy biriktirish) */
+  /** Sinf rahbari bo'lgan sinf */
   homeroomClassId?: string
+  /**
+   * Faqat o'z sinfiga dars beradimi.
+   * Boshlang'ich sinf o'qituvchilari uchun true, fan o'qituvchilari uchun false
+   * (ular sinf rahbari bo'lsa ham boshqa sinflarga dars beradi).
+   */
+  restrictedToHomeroom?: boolean
   /** O'qituvchi band bo'lgan kunlar (0 = dushanba ... 5 = shanba) */
   unavailableDays: number[]
 }
@@ -73,6 +115,15 @@ export interface Settings {
   solverIterations: number
   /** Tasodifiy urug' — bir xil natijani qayta olish uchun */
   seed: number
+  /** Bir stavka necha soat (O'zbekiston maktablarida odatda 18 soat) */
+  stavkaHours: number
+  /** Interfeys mavzusi */
+  theme: 'light' | 'dark' | 'system'
+  /**
+   * Mutaxassislik (metodbirlashma) bo'yicha metodik kun: speciality -> kun raqami.
+   * Shu kuni o'sha guruhning barcha o'qituvchilariga dars qo'yilmaydi.
+   */
+  pedagogicalDays: Record<string, number>
   /**
    * Barqarorlik og'irligi — qayta hisoblashda mavjud jadvalni saqlashga intilish kuchi.
    * 0 = eski jadval hisobga olinmaydi, 200 = faqat juda zarur o'zgarishlar qilinadi.
