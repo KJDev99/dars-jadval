@@ -13,12 +13,15 @@
     "bench:inc": "esbuild scripts/bench-incremental.ts --bundle --platform=node --format=esm --outfile=scripts/.bench-inc.mjs --log-level=warning && node scripts/.bench-inc.mjs",
     "bench:cat": "esbuild scripts/bench-category.ts --bundle --platform=node --format=esm --outfile=scripts/.bench-cat.mjs --log-level=warning && node scripts/.bench-cat.mjs",
     "bench:seeds": "esbuild scripts/bench-seeds.ts --bundle --platform=node --format=esm --outfile=scripts/.bench-seeds.mjs --log-level=warning && node scripts/.bench-seeds.mjs",
-    "bench:excel": "esbuild scripts/bench-excel.ts --bundle --platform=node --format=esm --external:xlsx --outfile=scripts/.bench-excel.mjs --log-level=warning && node scripts/.bench-excel.mjs"
+    "bench:excel": "esbuild scripts/bench-excel.ts --bundle --platform=node --format=esm --external:xlsx --outfile=scripts/.bench-excel.mjs --log-level=warning && node scripts/.bench-excel.mjs",
+    "bench:site": "esbuild scripts/bench-site.ts --bundle --platform=node --format=esm --outfile=scripts/.bench-site.mjs --log-level=warning && node scripts/.bench-site.mjs",
+    "smoke": "node scripts/run-smoke.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.7.0",
+    "react-router-dom": "^7.18.2",
     "xlsx": "^0.18.5",
     "zustand": "^4.5.5"
   },

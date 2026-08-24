@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Assignments, Rule, Schedule, SchoolClass, Settings, Teacher } from './types'
+import type {
+  AdminUser, Alumnus, Assignments, NewsItem, RequestStatus, Rule, Schedule, SchoolClass,
+  SchoolProfile, Settings, SiteContent, StaffMember, StudentHighlight, Teacher, TeacherRequest,
+} from './types'
 import { defaultClasses, defaultSettings, defaultTeachers } from './data/seed'
+import { defaultSite, defaultUsers } from './data/site-seed'
 import { emptyOverrides, type PlanOverrides, asgKey } from './lib/derive'
 import { SUBJECTS, standardHours } from './data/curriculum'
 
@@ -33,6 +37,12 @@ interface State {
   rules: Rule[]
   /** Qo'lda qulflangan darslar — qayta hisoblashda joyida qoladi */
   lockedUnitIds: string[]
+  /** Rasmiy sayt kontenti */
+  site: SiteContent
+  /** O'qituvchilarning o'zgartirish so'rovlari */
+  requests: TeacherRequest[]
+  /** Ma'muriyat foydalanuvchilari */
+  users: AdminUser[]
 
   // Sinflar
   addClass: (grade: number, letter: string) => void
@@ -70,6 +80,27 @@ interface State {
   // Excel import
   applyExcelImport: (p: ExcelImportPayload) => void
 
+  // Rasmiy sayt
+  setProfile: (patch: Partial<SchoolProfile>) => void
+  upsertStaff: (m: StaffMember) => void
+  removeStaff: (id: string) => void
+  moveStaff: (id: string, dir: -1 | 1) => void
+  upsertStudent: (x: StudentHighlight) => void
+  removeStudent: (id: string) => void
+  upsertAlumnus: (x: Alumnus) => void
+  removeAlumnus: (id: string) => void
+  upsertNews: (x: NewsItem) => void
+  removeNews: (id: string) => void
+
+  // So'rovlar
+  addRequest: (r: Omit<TeacherRequest, 'id' | 'createdAt' | 'status'>) => string
+  reviewRequest: (id: string, status: RequestStatus, response: string, reviewer: string) => void
+  removeRequest: (id: string) => void
+
+  // Foydalanuvchilar
+  upsertUser: (u: AdminUser) => void
+  removeUser: (id: string) => void
+
   // Sinf rahbari va metodik kun
   setHomeroom: (classId: string, teacherId: string | null) => void
   setPedagogicalDay: (speciality: string, day: number | null) => void
@@ -92,8 +123,38 @@ function seed() {
     scheduleStale: false,
     rules: [] as Rule[],
     lockedUnitIds: [] as string[],
+    site: defaultSite(),
+    requests: [] as TeacherRequest[],
+    users: defaultUsers(),
   }
 }
+
+/** Yangi yozuv uchun qisqa noyob kalit */
+const uid = (p: string) => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+
+/** Ro'yxatga qo'shish yoki mavjudini almashtirish */
+function upsert<T extends { id: string }>(list: T[], item: T): T[] {
+  const i = list.findIndex((x) => x.id === item.id)
+  if (i < 0) return [...list, item]
+  const next = [...list]
+  next[i] = item
+  return next
+}
+
+/**
+ * O'qituvchi kartochkasidagi — o'zgarsa jadvalni qayta hisoblashni talab qiladigan maydonlar.
+ * Qolganlari (rasm, telefon, tarjimai hol, pasport) faqat ko'rsatish uchun.
+ */
+const SCHEDULE_FIELDS: (keyof Teacher)[] = [
+  'subjectIds',
+  'minHours',
+  'maxHours',
+  'unavailableDays',
+  'homeroomClassId',
+  'restrictedToHomeroom',
+  'category',
+  'speciality',
+]
 
 /** Ma'lumot o'zgardi — jadval eskirdi, lekin o'chirilmaydi (asos sifatida kerak) */
 const stale = () => ({ scheduleStale: true })
@@ -182,7 +243,9 @@ export const useStore = create<State>()(
       updateTeacher: (id, patch) =>
         set((s) => ({
           teachers: s.teachers.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-          ...stale(),
+          // Jadvalga ta'sir qilmaydigan maydonlar (rasm, telefon, pasport, tarjimai hol)
+          // o'zgarganda jadval eskirgan deb belgilanmaydi
+          ...(SCHEDULE_FIELDS.some((k) => k in patch) ? stale() : {}),
         })),
 
       removeTeacher: (id) =>
@@ -352,6 +415,74 @@ export const useStore = create<State>()(
           }
         }),
 
+      /* ── Rasmiy sayt kontenti ────────────────────────────────────── */
+      setProfile: (patch) =>
+        set((st) => ({ site: { ...st.site, profile: { ...st.site.profile, ...patch } } })),
+
+      upsertStaff: (m) =>
+        set((st) => ({ site: { ...st.site, staff: upsert(st.site.staff, m).sort((a, b) => a.order - b.order) } })),
+
+      removeStaff: (id) =>
+        set((st) => ({ site: { ...st.site, staff: st.site.staff.filter((x) => x.id !== id) } })),
+
+      moveStaff: (id, dir) =>
+        set((st) => {
+          const list = [...st.site.staff].sort((a, b) => a.order - b.order)
+          const i = list.findIndex((x) => x.id === id)
+          const j = i + dir
+          if (i < 0 || j < 0 || j >= list.length) return st
+          const tmp = list[i]
+          list[i] = list[j]
+          list[j] = tmp
+          return { site: { ...st.site, staff: list.map((x, k) => ({ ...x, order: k + 1 })) } }
+        }),
+
+      upsertStudent: (x) => set((st) => ({ site: { ...st.site, students: upsert(st.site.students, x) } })),
+      removeStudent: (id) =>
+        set((st) => ({ site: { ...st.site, students: st.site.students.filter((s) => s.id !== id) } })),
+
+      upsertAlumnus: (x) => set((st) => ({ site: { ...st.site, alumni: upsert(st.site.alumni, x) } })),
+      removeAlumnus: (id) =>
+        set((st) => ({ site: { ...st.site, alumni: st.site.alumni.filter((s) => s.id !== id) } })),
+
+      upsertNews: (x) => set((st) => ({ site: { ...st.site, news: upsert(st.site.news, x) } })),
+      removeNews: (id) =>
+        set((st) => ({ site: { ...st.site, news: st.site.news.filter((s) => s.id !== id) } })),
+
+      /* ── O'qituvchi so'rovlari ───────────────────────────────────── */
+      addRequest: (r) => {
+        const id = uid('req')
+        set((st) => ({
+          requests: [{ ...r, id, status: 'yangi' as RequestStatus, createdAt: Date.now() }, ...st.requests],
+        }))
+        return id
+      },
+
+      reviewRequest: (id, status, response, reviewer) =>
+        set((st) => {
+          const req = st.requests.find((r) => r.id === id)
+          if (!req) return st
+          const requests = st.requests.map((r) =>
+            r.id === id
+              ? { ...r, status, response, reviewedBy: reviewer, reviewedAt: Date.now() }
+              : r,
+          )
+          // Profil so'rovi qabul qilinsa — taklif qilingan qiymatlar kartochkaga ko'chiriladi
+          if (status === 'qabul' && req.kind === 'profil' && req.proposed) {
+            return {
+              requests,
+              teachers: st.teachers.map((t) => (t.id === req.teacherId ? { ...t, ...req.proposed } : t)),
+            }
+          }
+          return { requests }
+        }),
+
+      removeRequest: (id) => set((st) => ({ requests: st.requests.filter((r) => r.id !== id) })),
+
+      /* ── Ma'muriyat foydalanuvchilari ────────────────────────────── */
+      upsertUser: (u) => set((st) => ({ users: upsert(st.users, u) })),
+      removeUser: (id) => set((st) => ({ users: st.users.filter((u) => u.id !== id) })),
+
       /* ── Sinf rahbari va metodik kun ─────────────────────────────── */
       setHomeroom: (classId, teacherId) =>
         set((s) => {
@@ -385,7 +516,7 @@ export const useStore = create<State>()(
     }),
     {
       name: 'dars-jadval-v1',
-      version: 3,
+      version: 4,
       migrate: (persisted: any, version) => {
         const p = { ...(persisted ?? {}) }
         if (version < 2) {
@@ -403,7 +534,23 @@ export const useStore = create<State>()(
           p.schedule = null
           p.scheduleStale = false
         }
+        if (version < 4) {
+          // Rasmiy sayt, so'rovlar va foydalanuvchilar qo'shildi.
+          // O'qituvchilarga pasport va shaxsiy ma'lumot maydonlari kerak —
+          // ular yo'q bo'lsa, urug'dagi qiymatlar bilan to'ldiriladi.
+          p.site = p.site ?? defaultSite()
+          p.requests = p.requests ?? []
+          p.users = p.users ?? defaultUsers()
+          const fresh = defaultTeachers(p.classes ?? defaultClasses())
+          const byId = new Map(fresh.map((t: Teacher) => [t.id, t]))
+          p.teachers = (p.teachers ?? []).map((t: Teacher) => {
+            if (t.passportNumber) return t
+            const f = byId.get(t.id)
+            return f ? { ...f, ...t, passportSeries: f.passportSeries, passportNumber: f.passportNumber } : t
+          })
+        }
         p.settings = { ...defaultSettings(), ...(p.settings ?? {}) }
+        p.site = { ...defaultSite(), ...(p.site ?? {}) }
         return p
       },
     },

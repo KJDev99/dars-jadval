@@ -248,6 +248,73 @@ export function defaultClasses(): SchoolClass[] {
   return out;
 }
 
+/** Pasport seriyasi uchun harflar — O'zbekiston pasportlarida ishlatiladigan kombinatsiyalar */
+const PASSPORT_SERIES = ["AA", "AB", "AC", "AD", "KA"];
+
+const OTM = [
+  "O'zbekiston Milliy universiteti",
+  "Nizomiy nomidagi TDPU",
+  "Toshkent davlat sharqshunoslik universiteti",
+  "Samarqand davlat universiteti",
+  "Buxoro davlat universiteti",
+  "Andijon davlat universiteti",
+  "Farg'ona davlat universiteti",
+  "Qarshi davlat universiteti",
+  "Namangan davlat universiteti",
+  "Toshkent davlat pedagogika instituti",
+];
+
+const AWARDS = [
+  "«Eng yaxshi fan o'qituvchisi» tuman bosqichi g'olibi",
+  "Xalq ta'limi a'lochisi ko'krak nishoni sohibi",
+  "Viloyat olimpiadasi g'olibini tayyorlagan",
+  "«Yilning eng faol pedagogi» ko'rigi sovrindori",
+  "Respublika ilmiy-amaliy anjumani ishtirokchisi",
+  "Metodik qo'llanma muallifi",
+  "Xalqaro malaka oshirish kursi bitiruvchisi",
+];
+
+/** Toifaga qarab ishonchli staj oralig'i */
+const EXP_BY_CATEGORY: Record<string, [number, number]> = {
+  oliy: [15, 34],
+  birinchi: [10, 22],
+  ikkinchi: [5, 14],
+  yoq: [1, 6],
+};
+
+/**
+ * Har bir o'qituvchiga shaxsiy kabinet uchun ma'lumot qo'shadi:
+ * pasport seriyasi va raqami, staj, ma'lumoti, yutuqlari.
+ * Barchasi urug'dan kelib chiqadi — har safar bir xil natija beradi.
+ */
+function fillPersonal(t: Teacher, rng: () => number, index: number, currentYear: number): Teacher {
+  const pick = <T,>(arr: T[]): T => arr[Math.floor(rng() * arr.length)];
+  const [lo, hi] = EXP_BY_CATEGORY[t.category] ?? [1, 6];
+  const experienceYears = lo + Math.floor(rng() * (hi - lo + 1));
+  const startYear = currentYear - Math.min(experienceYears, 1 + Math.floor(rng() * experienceYears));
+  const birthYear = currentYear - (22 + experienceYears + Math.floor(rng() * 4));
+  const month = 1 + Math.floor(rng() * 12);
+  const day = 1 + Math.floor(rng() * 28);
+  const awardCount = t.category === "oliy" ? 2 + Math.floor(rng() * 2) : t.category === "birinchi" ? 1 + Math.floor(rng() * 2) : Math.floor(rng() * 2);
+  const shuffled = [...AWARDS].sort(() => rng() - 0.5);
+
+  return {
+    ...t,
+    passportSeries: PASSPORT_SERIES[index % PASSPORT_SERIES.length],
+    passportNumber: String(1000000 + Math.floor(rng() * 8999999)),
+    birthDate: `${birthYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+    phone: `+998 9${Math.floor(rng() * 10)} ${String(100 + Math.floor(rng() * 900))}-${String(10 + Math.floor(rng() * 90))}-${String(10 + Math.floor(rng() * 90))}`,
+    email: `teacher${index + 1}@maktab.uz`,
+    education: `${pick(OTM)} bitirgan`,
+    degree: t.category === "oliy" && rng() < 0.25 ? "Pedagogika fanlari bo'yicha falsafa doktori (PhD)" : "",
+    experienceYears,
+    startYear,
+    bio: `${t.speciality} yo'nalishi bo'yicha ${experienceYears} yillik pedagogik tajribaga ega. ${startYear}-yildan buyon shu maktabda faoliyat yuritadi.`,
+    achievements: shuffled.slice(0, awardCount),
+    publicVisible: true,
+  };
+}
+
 export function defaultTeachers(classes: SchoolClass[]): Teacher[] {
   const rng = makeRng(20262027);
   const used = new Set<string>();
@@ -321,8 +388,14 @@ export function defaultTeachers(classes: SchoolClass[]): Teacher[] {
     if (t && !t.homeroomClassId) t.homeroomClassId = c.id;
   });
 
-  return teachers;
+  // 4) Shaxsiy kabinet va rasmiy sayt uchun ma'lumotlar
+  const prng = makeRng(770077);
+  const year = SCHOOL_YEAR;
+  return teachers.map((t, i) => fillPersonal(t, prng, i, year));
 }
+
+/** Joriy o'quv yili boshi — staj hisob-kitoblarida tayanch qilib olinadi */
+export const SCHOOL_YEAR = 2026;
 
 /**
  * Metodbirlashmalarning metodik (pedagogik) kunlari.

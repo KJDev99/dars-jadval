@@ -19,7 +19,7 @@ const CAT_TINT: Record<TeacherCategory, string> = {
 }
 
 interface Props {
-  onNavigate?: (page: 'generate' | 'teachers' | 'tarif') => void
+  onNavigate?: (page: string) => void
 }
 
 export default function ExcelPage({ onNavigate }: Props) {

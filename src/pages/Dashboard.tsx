@@ -4,7 +4,7 @@ import { Page, PageHeader, Stat } from '../components/ui'
 import { classTotalHours, classPlanHours, teacherLoads, formatStavka } from '../lib/derive'
 import { CATEGORY_LABELS, CATEGORY_ORDER, CATEGORY_SHORT } from '../types'
 import { OFFICIAL_TOTALS } from '../data/curriculum'
-import type { PageId } from '../App'
+import type { PageId } from '../admin/nav'
 
 export default function Dashboard({ onNavigate }: { onNavigate: (p: PageId) => void }) {
   const { classes, teachers, overrides, assignments, schedule, settings, rules, scheduleStale } = useStore()

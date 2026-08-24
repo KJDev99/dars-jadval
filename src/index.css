@@ -158,6 +158,87 @@
   .tint-slate {
     @apply border-line bg-raised text-muted;
   }
+
+  /* ═════════════════════ Rasmiy sayt ═════════════════════ */
+
+  .site-wrap {
+    @apply mx-auto w-full max-w-[1200px] px-4 sm:px-6;
+  }
+
+  .section {
+    @apply py-14 sm:py-20;
+  }
+
+  /* Bo'lim ustidagi kichik yorliq */
+  .eyebrow {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-indigo-500/25 bg-indigo-500/10
+           px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo-700
+           dark:text-indigo-300;
+  }
+
+  .h-display {
+    @apply text-3xl font-bold tracking-tight text-fg sm:text-4xl lg:text-[2.75rem] lg:leading-[1.1];
+  }
+
+  .h-section {
+    @apply text-2xl font-bold tracking-tight text-fg sm:text-3xl;
+  }
+
+  .lede {
+    @apply text-base leading-relaxed text-muted sm:text-lg;
+  }
+
+  .btn-lg {
+    @apply px-5 py-2.5 text-[0.95rem];
+  }
+
+  /* Rangli fon ustidagi oq tugma */
+  .btn-white {
+    @apply btn border border-white/25 bg-white/95 text-indigo-700 shadow-sm
+           hover:bg-white hover:shadow-btn-hover active:bg-white/90;
+  }
+
+  .btn-outline-white {
+    @apply btn border border-white/40 bg-white/10 text-white backdrop-blur-sm
+           hover:border-white/70 hover:bg-white/20 active:bg-white/[0.14];
+  }
+
+  /* Saytdagi navigatsiya havolasi */
+  .nav-link {
+    @apply relative rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors
+           hover:bg-raised hover:text-fg;
+  }
+  .nav-link-on {
+    @apply bg-indigo-500/10 text-indigo-700 dark:text-indigo-300;
+  }
+
+  /* Ko'tariladigan karta — hover'da faqat soya va chegara o'zgaradi */
+  .card-lift {
+    @apply card overflow-hidden transition-[box-shadow,border-color] duration-200
+           hover:border-line-strong hover:shadow-lift;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-raised px-2.5 py-1
+           text-xs font-medium text-fg-2;
+  }
+
+  /* Uzun matn */
+  .prose-uz p {
+    @apply mb-4 leading-[1.75] text-fg-2 last:mb-0;
+  }
+
+  /* Nozik to'r naqshi (hero orqa foni) */
+  .grid-pattern {
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.07) 1px, transparent 1px);
+    background-size: 46px 46px;
+  }
+
+  .divider-soft {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-line to-transparent;
+  }
 }
 
 /* ───────────────────────── Chop etish (print) ──────────────────────── */

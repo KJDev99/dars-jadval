@@ -23,6 +23,8 @@ export default {
       boxShadow: {
         card: '0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.06)',
         'btn-hover': '0 2px 8px -2px rgb(0 0 0 / 0.18)',
+        lift: '0 8px 28px -12px rgb(15 23 42 / 0.22), 0 2px 8px -4px rgb(15 23 42 / 0.12)',
+        hero: '0 30px 80px -30px rgb(49 46 129 / 0.55)',
       },
     },
   },

@@ -7,3 +7,5 @@ scripts/.bench-inc.mjs
 scripts/.bench-seeds.mjs
 scripts/.bench-cat.mjs
 scripts/.bench-excel.mjs
+scripts/.bench-site.mjs
+scripts/.smoke.mjs

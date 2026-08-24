@@ -1,184 +1,99 @@
-import { useState } from 'react'
+import { Suspense, lazy } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { useStore } from './store'
-import { useTheme, THEME_LABELS } from './lib/theme'
-import type { ThemeMode } from './lib/theme'
-import Dashboard from './pages/Dashboard'
-import ClassesPage from './pages/ClassesPage'
-import TeachersPage from './pages/TeachersPage'
-import CurriculumPage from './pages/CurriculumPage'
-import TarifikatsiyaPage from './pages/TarifikatsiyaPage'
-import GeneratePage from './pages/GeneratePage'
-import SchedulePage from './pages/SchedulePage'
-import ReportPage from './pages/ReportPage'
-import RulesPage from './pages/RulesPage'
-import ExcelPage from './pages/ExcelPage'
-import {
-  IcoDashboard,
-  IcoClasses,
-  IcoTeachers,
-  IcoCurriculum,
-  IcoTarif,
-  IcoRules,
-  IcoGenerate,
-  IcoSchedule,
-  IcoReport,
-  IcoSun,
-  IcoMoon,
-  IcoSystem,
-  IcoLock,
-  IcoExcel,
-} from './components/icons'
+import { useTheme } from './lib/theme'
 
-const NAV = [
-  { id: 'dashboard', label: 'Boshqaruv paneli', Icon: IcoDashboard },
-  { id: 'classes', label: 'Sinflar', Icon: IcoClasses },
-  { id: 'teachers', label: "O'qituvchilar", Icon: IcoTeachers },
-  { id: 'curriculum', label: "O'quv reja", Icon: IcoCurriculum },
-  { id: 'tarif', label: 'Tarifikatsiya', Icon: IcoTarif },
-  { id: 'excel', label: 'Excel', Icon: IcoExcel },
-  { id: 'rules', label: 'Shartlar va izohlar', Icon: IcoRules },
-  { id: 'generate', label: 'Jadval yaratish', Icon: IcoGenerate },
-  { id: 'schedule', label: 'Dars jadvali', Icon: IcoSchedule },
-  { id: 'report', label: 'Tekshiruv', Icon: IcoReport },
-] as const
+import PublicLayout from './site/PublicLayout'
+import HomePage from './site/HomePage'
+import AboutPage from './site/AboutPage'
+import LeadershipPage from './site/LeadershipPage'
+import StaffPage from './site/StaffPage'
+import TeacherPublicPage from './site/TeacherPublicPage'
+import AchievementsPage from './site/AchievementsPage'
+import PublicSchedulePage from './site/PublicSchedulePage'
+import ContactPage from './site/ContactPage'
 
-type PageId = (typeof NAV)[number]['id']
+import RequireAuth from './auth/RequireAuth'
 
-const THEME_OPTIONS: { mode: ThemeMode; Icon: typeof IcoSun }[] = [
-  { mode: 'light', Icon: IcoSun },
-  { mode: 'dark', Icon: IcoMoon },
-  { mode: 'system', Icon: IcoSystem },
-]
+/*
+ * Yopiq bo'limlar alohida bo'laklarga ajratiladi — rasmiy saytga kirgan
+ * mehmon ma'muriyat paneli va kabinet kodini yuklamaydi.
+ */
+const LoginPage = lazy(() => import('./auth/LoginPage'))
+const CabinetLayout = lazy(() => import('./cabinet/CabinetLayout'))
+const CabinetHome = lazy(() => import('./cabinet/CabinetHome'))
+const CabinetSchedule = lazy(() => import('./cabinet/CabinetSchedule'))
+const CabinetProfile = lazy(() => import('./cabinet/CabinetProfile'))
+const CabinetRequests = lazy(() => import('./cabinet/CabinetRequests'))
+const AdminApp = lazy(() => import('./admin/AdminApp'))
 
-export default function App() {
-  const [page, setPage] = useState<PageId>('dashboard')
-  const schoolName = useStore((s) => s.settings.schoolName)
-  const theme = useStore((s) => s.settings.theme)
-  const setSettings = useStore((s) => s.setSettings)
-  const schedule = useStore((s) => s.schedule)
-  const scheduleStale = useStore((s) => s.scheduleStale)
-  const rulesCount = useStore((s) => s.rules.filter((r) => r.active && r.kind !== 'note').length)
-  const locksCount = useStore((s) => s.lockedUnitIds.length)
-
-  useTheme(theme ?? 'system')
-
+/** Bo'lak yuklanayotgandagi ko'rinish */
+function Loading() {
   return (
-    <div className="flex min-h-screen">
-      {/* Yon panel */}
-      <aside className="no-print sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-line bg-surface">
-        <div className="border-b border-line px-4 py-4">
-          <div className="flex items-center gap-2">
-            <span className="grid h-6 w-6 place-items-center rounded-md bg-indigo-600 text-white">
-              <IcoSchedule className="h-3.5 w-3.5" />
-            </span>
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-              Dars Jadval
-            </span>
-          </div>
-          <input
-            className="mt-1.5 w-full rounded border-0 bg-transparent p-0 text-sm font-semibold text-fg outline-none
-                       transition-colors focus:text-indigo-600 dark:focus:text-indigo-400"
-            value={schoolName}
-            onChange={(e) => setSettings({ schoolName: e.target.value })}
-          />
-        </div>
-
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-          {NAV.map(({ id, label, Icon }) => {
-            const on = page === id
-            return (
-              <button
-                key={id}
-                onClick={() => setPage(id)}
-                className={`group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm
-                            transition-colors duration-150 ${
-                              on
-                                ? 'bg-indigo-500/10 font-medium text-indigo-700 dark:text-indigo-300'
-                                : 'text-muted hover:bg-raised hover:text-fg'
-                            }`}
-              >
-                <Icon
-                  className={`h-4 w-4 shrink-0 transition-colors ${
-                    on ? 'text-indigo-600 dark:text-indigo-400' : 'text-faint group-hover:text-fg-2'
-                  }`}
-                />
-                <span className="flex-1 truncate">{label}</span>
-                {id === 'rules' && rulesCount > 0 && (
-                  <span className="badge bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">{rulesCount}</span>
-                )}
-                {id === 'schedule' && locksCount > 0 && (
-                  <span className="badge bg-amber-500/15 text-amber-700 dark:text-amber-300">
-                    <IcoLock className="h-2.5 w-2.5" />
-                    {locksCount}
-                  </span>
-                )}
-                {id === 'generate' && scheduleStale && (
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" title="Qayta hisoblash kerak" />
-                )}
-              </button>
-            )
-          })}
-        </nav>
-
-        {/* Mavzu almashtirgich */}
-        <div className="border-t border-line p-3">
-          <div className="seg w-full">
-            {THEME_OPTIONS.map(({ mode, Icon }) => (
-              <button
-                key={mode}
-                onClick={() => setSettings({ theme: mode })}
-                title={THEME_LABELS[mode]}
-                className={`seg-item flex-1 justify-center px-0 ${
-                  (theme ?? 'system') === mode ? 'seg-item-on' : ''
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed">
-            <span
-              className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${
-                !schedule ? 'bg-faint' : scheduleStale ? 'bg-amber-500' : 'bg-emerald-500'
-              }`}
-            />
-            <span className="text-muted">
-              {!schedule ? (
-                'Jadval hali yaratilmagan'
-              ) : scheduleStale ? (
-                <>
-                  Jadval eskirgan
-                  <br />
-                  Qayta hisoblash kerak
-                </>
-              ) : (
-                <>
-                  Jadval dolzarb
-                  <br />
-                  {new Date(schedule.createdAt).toLocaleString('uz-UZ')}
-                </>
-              )}
-            </span>
-          </div>
-        </div>
-      </aside>
-
-      {/* Asosiy maydon */}
-      <main className="min-w-0 flex-1">
-        {page === 'dashboard' && <Dashboard onNavigate={setPage} />}
-        {page === 'classes' && <ClassesPage />}
-        {page === 'teachers' && <TeachersPage />}
-        {page === 'curriculum' && <CurriculumPage />}
-        {page === 'tarif' && <TarifikatsiyaPage />}
-        {page === 'excel' && <ExcelPage onNavigate={setPage} />}
-        {page === 'rules' && <RulesPage />}
-        {page === 'generate' && <GeneratePage />}
-        {page === 'schedule' && <SchedulePage />}
-        {page === 'report' && <ReportPage />}
-      </main>
+    <div className="grid min-h-screen place-items-center bg-canvas">
+      <div className="flex items-center gap-3 text-sm text-muted">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-indigo-500" />
+        Yuklanmoqda…
+      </div>
     </div>
   )
 }
 
-export type { PageId }
+/**
+ * Ilova uch qismdan iborat:
+ *   1. Rasmiy sayt — hamma uchun ochiq
+ *   2. Ma'muriyat paneli (/boshqaruv) — login va parol bilan
+ *   3. O'qituvchi kabineti (/kabinet) — pasport ma'lumoti bilan
+ */
+export default function App() {
+  const theme = useStore((s) => s.settings.theme)
+  useTheme(theme ?? 'system')
+
+  return (
+    <Suspense fallback={<Loading />}>
+      <Routes>
+        {/* ── Rasmiy sayt ─────────────────────────────────────────────── */}
+        <Route element={<PublicLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="maktab" element={<AboutPage />} />
+          <Route path="rahbariyat" element={<LeadershipPage />} />
+          <Route path="oqituvchilar" element={<StaffPage />} />
+          <Route path="oqituvchilar/:id" element={<TeacherPublicPage />} />
+          <Route path="yutuqlar" element={<AchievementsPage />} />
+          <Route path="jadval" element={<PublicSchedulePage />} />
+          <Route path="aloqa" element={<ContactPage />} />
+        </Route>
+
+        {/* ── Kirish ──────────────────────────────────────────────────── */}
+        <Route path="/kirish" element={<LoginPage />} />
+
+        {/* ── O'qituvchi kabineti ─────────────────────────────────────── */}
+        <Route
+          path="/kabinet"
+          element={
+            <RequireAuth need="teacher">
+              <CabinetLayout />
+            </RequireAuth>
+          }
+        >
+          <Route index element={<CabinetHome />} />
+          <Route path="jadval" element={<CabinetSchedule />} />
+          <Route path="malumot" element={<CabinetProfile />} />
+          <Route path="sorovlar" element={<CabinetRequests />} />
+        </Route>
+
+        {/* ── Ma'muriyat paneli ───────────────────────────────────────── */}
+        <Route
+          path="/boshqaruv/*"
+          element={
+            <RequireAuth need="admin">
+              <AdminApp />
+            </RequireAuth>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  )
+}

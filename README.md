@@ -14,12 +14,112 @@ npm run bench:inc    # "minimal o'zgarish" rejimini sinash
 npm run bench:cat    # toifa bo'yicha dars taqsimotini sinash
 npm run bench:seeds  # turli urug'larda barqarorlikni sinash
 npm run bench:excel  # Excel eksport → import → jadval zanjirini sinash
+npm run bench:site   # sayt kontenti, kirish va so'rovlar mantig'ini sinash
+npm run smoke        # barcha sahifalarni chizib, ishga tushish xatolarini topish
 ```
 
 Interfeys **yorug'** va **qorong'i** mavzuda ishlaydi — yon paneldagi tugmadan
 tanlanadi (yorug' / qorong'i / tizim mavzusi). Tanlov saqlanadi.
 
 Ma'lumotlar brauzerning `localStorage` xotirasida saqlanadi — server yoki baza talab qilinmaydi.
+
+## Tizimning uch qismi
+
+| Qism | Manzil | Kim kiradi |
+|---|---|---|
+| **Rasmiy sayt** | `/` | Hamma — ochiq |
+| **Ma'muriyat paneli** | `/boshqaruv` | Direktor va zavuch — login va parol bilan |
+| **O'qituvchi kabineti** | `/kabinet` | O'qituvchi — pasport seriyasi va raqami bilan |
+
+Yopiq bo'limlar alohida bo'laklarga ajratilgan: saytga kirgan mehmon boshqaruv paneli
+kodini umuman yuklamaydi.
+
+### Sinov uchun kirish ma'lumotlari
+
+| Rol | Login | Parol |
+|---|---|---|
+| Direktor | `direktor` | `maktab2026` |
+| Zavuch | `zavuch` | `zavuch2026` |
+
+O'qituvchi kabinetiga kirish uchun pasport ma'lumoti kerak. Har bir o'qituvchining
+seriyasi va raqami «Foydalanuvchilar» bo'limida ko'rinadi va o'zgartiriladi; kirish
+sahifasidagi «Sinov uchun ma'lumot» bandi bitta tayyor hisobni ko'rsatadi.
+
+Seans `sessionStorage` da saqlanadi — brauzer oynasi yopilganda tizimdan chiqiladi.
+
+## Rasmiy sayt
+
+Maktabning ochiq sahifalari — hech qanday kirishsiz ko'rinadi.
+
+| Sahifa | Mazmuni |
+|---|---|
+| Bosh sahifa | Tashkil etilgan yili, shior, ko'rsatkichlar, rahbariyat, a'lochilar, bitiruvchilar, yangiliklar |
+| Maktab haqida | To'liq tarix, tamoyillar, rasm va yangiliklar ro'yxati |
+| Rahbariyat | Har bir a'zoning lavozimi, staji, ma'lumoti, qabul vaqti, faoliyati va mukofotlari |
+| Pedagoglar | Toifa va mutaxassislik bo'yicha filtr, qidiruv; har biri uchun alohida sahifa |
+| Yutuqlar | A'lochi o'quvchilar (bosqich va yil bo'yicha filtr) hamda faxriy bitiruvchilar |
+| Dars jadvali | Umumiy jadval — sinf yoki o'qituvchi kesimida, chop etish bilan |
+| Aloqa | Manzil, telefon, qabul kunlari va murojaat shakli |
+
+Pedagog sahifasida (`/oqituvchilar/:id`) o'qituvchining toifasi, staji, ma'lumoti,
+o'qitadigan fanlari, sinf rahbarligi, yutuqlari va **haftalik dars jadvali** ko'rsatiladi.
+
+Barcha rasmlar uchun joy tayyorlangan: rasm yuklanmagan bo'lsa ismdan olingan bosh
+harflar va ismga bog'liq rangdagi chiroyli o'rin egallagich chiziladi. Rasm yuklanganda
+u brauzerda 900 px gacha kichraytirilib, JPEG ga siqiladi.
+
+## O'qituvchining shaxsiy kabineti
+
+O'qituvchi pasport seriyasi (2 harf) va raqami (7 raqam) bilan kiradi.
+
+| Bo'lim | Mazmuni |
+|---|---|
+| Bosh sahifa | Bugungi darslar, haftalik yuklama va stavka, oynalar, shaxsiy shartlar |
+| Dars jadvalim | To'liq haftalik jadval, kunlar kesimidagi yig'indi, chop etish |
+| Ma'lumotlarim | O'zgartirish taklif qilinadigan maydonlar + ma'muriyat belgilaydigan maydonlar |
+| So'rovlarim | Yangi ariza yuborish va yuborilganlarining holati |
+
+**O'qituvchi hech narsani o'zi o'zgartira olmaydi.** «Ma'lumotlarim» bo'limida maydon
+tahrirlanadi, tizim eski va yangi qiymatni taqqoslab **faqat o'zgargan maydonlarni**
+so'rovga qo'shadi. Ma'muriyat so'rovni qabul qilsa — o'zgarishlar kartochkaga avtomatik
+ko'chadi; rad etsa — hech narsa o'zgarmaydi.
+
+Jadval yoki yuklama bo'yicha so'rovda aniq darsni tanlash mumkin (kun, soat, sinf, fan) —
+u so'rov matniga qo'shiladi.
+
+## Rollar va ruxsatlar
+
+| Bo'lim | Direktor | Zavuch | O'qituvchi |
+|---|---|---|---|
+| Sinflar, o'qituvchilar, o'quv reja, tarifikatsiya, Excel | ✓ | ✓ | — |
+| Shartlar, jadval yaratish, dars jadvali, tekshiruv | ✓ | ✓ | — |
+| O'qituvchi so'rovlari | ✓ | ✓ | o'ziniki |
+| Rasmiy sayt kontenti | ✓ | — | — |
+| Foydalanuvchilar va pasport ma'lumotlari | ✓ | — | — |
+| O'z jadvali va ma'lumotini ko'rish | — | — | ✓ |
+
+O'qituvchi ma'lumotlarini **faqat direktor yoki zavuch** o'zgartiradi — kartochka orqali
+yoki so'rovni qabul qilish orqali.
+
+## Sayt kontentini boshqarish
+
+«Rasmiy sayt» bo'limi (direktor) besh qismdan iborat: maktab ma'lumoti (nom, yil, shior,
+matn, aloqa, rasmlar, ko'rsatkichlar), rahbariyat, a'lochi o'quvchilar, faxriy
+bitiruvchilar va yangiliklar. Har bir ro'yxat qo'shish / tahrirlash / o'chirish, rahbariyat
+esa qo'shimcha ravishda tartibni o'zgartirishni qo'llab-quvvatlaydi.
+
+## Backendga o'tish
+
+Hozircha hamma narsa brauzerda ishlaydi. Server qismi ulanganda o'zgartiriladigan joylar:
+
+| Fayl | Nima o'zgaradi |
+|---|---|
+| `src/authStore.ts` | `loginAdmin` / `loginTeacher` server so'roviga almashadi, parollar serverda shifrlanadi |
+| `src/lib/image.ts` | Rasm data URL o'rniga serverga yuklanadi |
+| `src/store.ts` | `persist` o'rniga API bilan sinxronlash |
+| `src/site/ContactPage.tsx` | Murojaat shakli serverga yuboriladi |
+
+Qolgan kod — sahifalar, jadval generatori, tekshiruvchi va Excel — o'zgarishsiz qoladi.
 
 ## Ma'lumot manbasi
 
@@ -32,7 +132,7 @@ Haftalik jami soatlar: 1-sinf 21, 2–4 24, 5 29, 6 30, 7 35, 8 33, 9 34, 10 31,
 Barcha qator va ustun yig'indilari rasmiy hujjat bilan solishtirib tekshirilgan
 (`npm run bench` buni har safar qayta tekshiradi).
 
-## Bo'limlar
+## Ma'muriyat panelining bo'limlari
 
 | Bo'lim | Vazifasi |
 |---|---|
@@ -46,6 +146,9 @@ Barcha qator va ustun yig'indilari rasmiy hujjat bilan solishtirib tekshirilgan
 | Jadval yaratish | Cheklovlarni sozlash, yangidan yaratish yoki minimal o'zgarish bilan qayta hisoblash |
 | Dars jadvali | Sinf / o'qituvchi / umumiy ko'rinish, qo'lda tahrirlash, qulflash, chop etish, CSV |
 | Tekshiruv | Tuzilgan jadvalning barcha qoidalarga mosligini mustaqil tekshirish |
+| O'qituvchi so'rovlari | Kabinetdan kelgan arizalar: qabul qilish, rad etish, javob yozish |
+| Rasmiy sayt | Sayt kontenti — maktab ma'lumoti, rahbariyat, o'quvchilar, bitiruvchilar, yangiliklar |
+| Foydalanuvchilar | Ma'muriyat hisoblari va o'qituvchilarning pasport ma'lumotlari |
 
 ## Excel bilan ishlash
 
@@ -352,12 +455,23 @@ src/
   scheduler/solver.ts   — jadval generatori (noldan va inkremental)
   scheduler/validate.ts — mustaqil tekshiruvchi
   scheduler/worker.ts   — Web Worker
-  pages/                — interfeys sahifalari
+  site/                 — rasmiy saytning ochiq sahifalari
+  auth/                 — kirish sahifasi va himoyalangan yo'llar
+  cabinet/              — o'qituvchining shaxsiy kabineti
+  admin/                — ma'muriyat panelining qobig'i va menyusi
+  pages/                — ma'muriyat panelining sahifalari
+  components/Photo.tsx  — rasm va o'rin egallagich, rasm yuklash
+  lib/image.ts          — rasmni kichraytirish, bosh harflar
+  data/site-seed.ts     — sayt kontenti va hisoblarning boshlang'ich holati
+  authStore.ts          — kirish va ruxsatlar (zustand + sessionStorage)
   store.ts              — holat (zustand + localStorage)
 scripts/
   bench.ts              — noldan tuzishni sinash
   bench-incremental.ts  — o'zgartirish ssenariylarini sinash
   bench-category.ts     — toifa bo'yicha taqsimotni sinash
+  bench-excel.ts        — Excel zanjirini sinash
+  bench-site.ts         — sayt kontenti, kirish va so'rovlarni sinash
+  smoke.tsx             — barcha sahifalarni serverda chizib tekshirish
   bench-seeds.ts        — ko'p urug'li barqarorlik sinovi
 ```
 
