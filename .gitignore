@@ -6,3 +6,4 @@ scripts/.bench-inc.mjs
 .DS_Store
 scripts/.bench-seeds.mjs
 scripts/.bench-cat.mjs
+scripts/.bench-excel.mjs

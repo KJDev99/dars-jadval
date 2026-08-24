@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import Select from '../components/Select'
-import { IcoAuto, IcoTransfer, IcoDownload } from '../components/icons'
+import { IcoAuto, IcoTransfer, IcoDownload, IcoExcel } from '../components/icons'
 import { useStore } from '../store'
 import { Field, Modal, Page, PageHeader } from '../components/ui'
 import { SUBJECTS, SUBJECT_BY_ID } from '../data/curriculum'
@@ -11,6 +11,7 @@ import { asgKey, classSubjects, effectiveHours, teacherLoads } from '../lib/deri
 import { resolveTeacherConstraints } from '../lib/rules'
 import { applyTransfer, autoAssign, checkTransfer, teacherWorkload } from '../scheduler/assign'
 import { exportTarifikatsiyaCsv } from '../lib/export'
+import { exportExcel } from '../lib/excel'
 
 const CAT_TINT: Record<TeacherCategory, string> = {
   oliy: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
@@ -127,6 +128,13 @@ export default function TarifikatsiyaPage() {
               }
             >
               <IcoDownload className="h-4 w-4" /> CSV
+            </button>
+            <button
+              className="btn-ghost"
+              title="O'qituvchilar, toifalar va tarifikatsiya — bitta Excel kitobida"
+              onClick={() => void exportExcel({ classes, teachers, assignments, overrides, settings })}
+            >
+              <IcoExcel className="h-4 w-4" /> Excel
             </button>
           </>
         }

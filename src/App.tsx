@@ -11,6 +11,7 @@ import GeneratePage from './pages/GeneratePage'
 import SchedulePage from './pages/SchedulePage'
 import ReportPage from './pages/ReportPage'
 import RulesPage from './pages/RulesPage'
+import ExcelPage from './pages/ExcelPage'
 import {
   IcoDashboard,
   IcoClasses,
@@ -25,6 +26,7 @@ import {
   IcoMoon,
   IcoSystem,
   IcoLock,
+  IcoExcel,
 } from './components/icons'
 
 const NAV = [
@@ -33,6 +35,7 @@ const NAV = [
   { id: 'teachers', label: "O'qituvchilar", Icon: IcoTeachers },
   { id: 'curriculum', label: "O'quv reja", Icon: IcoCurriculum },
   { id: 'tarif', label: 'Tarifikatsiya', Icon: IcoTarif },
+  { id: 'excel', label: 'Excel', Icon: IcoExcel },
   { id: 'rules', label: 'Shartlar va izohlar', Icon: IcoRules },
   { id: 'generate', label: 'Jadval yaratish', Icon: IcoGenerate },
   { id: 'schedule', label: 'Dars jadvali', Icon: IcoSchedule },
@@ -168,6 +171,7 @@ export default function App() {
         {page === 'teachers' && <TeachersPage />}
         {page === 'curriculum' && <CurriculumPage />}
         {page === 'tarif' && <TarifikatsiyaPage />}
+        {page === 'excel' && <ExcelPage onNavigate={setPage} />}
         {page === 'rules' && <RulesPage />}
         {page === 'generate' && <GeneratePage />}
         {page === 'schedule' && <SchedulePage />}

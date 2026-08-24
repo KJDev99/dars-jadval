@@ -8,8 +8,9 @@ import { CATEGORY_LABELS, CATEGORY_ORDER, CATEGORY_RANK, CATEGORY_SHORT, DAY_NAM
 import type { Teacher, TeacherCategory } from '../types'
 import { formatStavka } from '../lib/derive'
 import { useIsDark, tintOf } from '../lib/theme'
-import { IcoPlus, IcoSearch, IcoEdit, IcoTrash, IcoCategory } from '../components/icons'
+import { IcoPlus, IcoSearch, IcoEdit, IcoTrash, IcoCategory, IcoExcel } from '../components/icons'
 import { SPECIALITY_SPEC } from '../data/seed'
+import { exportExcel } from '../lib/excel'
 
 /** Toifa nishoni rangi */
 const CAT_TINT: Record<TeacherCategory, string> = {
@@ -124,6 +125,13 @@ export default function TeachersPage() {
                 group: s.yonalish,
               }))}
             />
+            <button
+              className="btn-ghost"
+              title="O'qituvchilar ro'yxati, toifasi va tarifikatsiyasini Excelga chiqarish"
+              onClick={() => void exportExcel({ classes, teachers, assignments, overrides, settings })}
+            >
+              <IcoExcel className="h-4 w-4" /> Excel
+            </button>
             <button className="btn-primary" onClick={() => setCreating(blank())}>
               <IcoPlus className="h-4 w-4" /> O'qituvchi
             </button>

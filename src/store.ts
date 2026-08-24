@@ -3,7 +3,23 @@ import { persist } from 'zustand/middleware'
 import type { Assignments, Rule, Schedule, SchoolClass, Settings, Teacher } from './types'
 import { defaultClasses, defaultSettings, defaultTeachers } from './data/seed'
 import { emptyOverrides, type PlanOverrides, asgKey } from './lib/derive'
-import { standardHours } from './data/curriculum'
+import { SUBJECTS, standardHours } from './data/curriculum'
+
+/** Excel fayldan olingan va qo'llanadigan ma'lumot */
+export interface ExcelImportPayload {
+  /** Fayldagi o'qituvchilar (mavjudlari bilan birlashtirilgan) */
+  teachers: Teacher[]
+  /** `classId|subjectId` -> teacherId */
+  assignments: Assignments
+  /** classId -> subjectId -> haftalik soat */
+  classHours: Record<string, Record<string, number>>
+  /** Faylda uchragan yangi sinflar */
+  newClasses: SchoolClass[]
+  /** Faylda yo'q o'qituvchilar bazadan o'chirilsinmi */
+  removeMissing: boolean
+  /** Sinf o'quv rejasi fayl bo'yicha aniq belgilansinmi (qolgan fanlar 0 soat) */
+  exactPlan: boolean
+}
 
 interface State {
   classes: SchoolClass[]
@@ -50,6 +66,9 @@ interface State {
   toggleLock: (unitId: string) => void
   clearLocks: () => void
   swapPlacements: (unitIdA: string, unitIdB: string) => void
+
+  // Excel import
+  applyExcelImport: (p: ExcelImportPayload) => void
 
   // Sinf rahbari va metodik kun
   setHomeroom: (classId: string, teacherId: string | null) => void
@@ -275,6 +294,61 @@ export const useStore = create<State>()(
           return {
             schedule: { ...s.schedule, placements },
             lockedUnitIds: [...locks],
+          }
+        }),
+
+      /* ── Excel import ────────────────────────────────────────────── */
+      applyExcelImport: (p) =>
+        set((st) => {
+          // 1. Yangi sinflar
+          const classes = [...st.classes]
+          for (const nc of p.newClasses) if (!classes.some((c) => c.id === nc.id)) classes.push(nc)
+          classes.sort((a, b) => a.grade - b.grade || a.letter.localeCompare(b.letter))
+
+          // 2. O'qituvchilar
+          const importedIds = new Set(p.teachers.map((t) => t.id))
+          const teachers = p.removeMissing
+            ? [...p.teachers]
+            : [...p.teachers, ...st.teachers.filter((t) => !importedIds.has(t.id))]
+
+          // Bitta sinfda bitta rahbar
+          const hrSeen = new Set<string>()
+          const clean = teachers.map((t) => {
+            if (!t.homeroomClassId) return t
+            if (hrSeen.has(t.homeroomClassId)) return { ...t, homeroomClassId: undefined }
+            hrSeen.add(t.homeroomClassId)
+            return t
+          })
+          const liveIds = new Set(clean.map((t) => t.id))
+
+          // 3. Tarifikatsiya
+          const assignments: Assignments = p.removeMissing
+            ? { ...p.assignments }
+            : { ...st.assignments, ...p.assignments }
+          for (const [k, v] of Object.entries(assignments)) {
+            if (!liveIds.has(v)) delete assignments[k]
+          }
+
+          // 4. Sinf o'quv rejasi
+          const byClass = { ...st.overrides.byClass }
+          for (const [cid, row] of Object.entries(p.classHours)) {
+            if (p.exactPlan) {
+              const full: Record<string, number> = {}
+              for (const sub of SUBJECTS) full[sub.id] = row[sub.id] ?? 0
+              byClass[cid] = full
+            } else {
+              byClass[cid] = { ...(byClass[cid] ?? {}), ...row }
+            }
+          }
+
+          return {
+            classes,
+            teachers: clean,
+            assignments,
+            overrides: { ...st.overrides, byClass },
+            rules: st.rules.filter((r) => !r.teacherId || liveIds.has(r.teacherId)),
+            lockedUnitIds: [],
+            ...stale(),
           }
         }),
 

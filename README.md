@@ -13,6 +13,7 @@ npm run bench        # generatorni brauzersiz sinash (konsolda hisobot)
 npm run bench:inc    # "minimal o'zgarish" rejimini sinash
 npm run bench:cat    # toifa bo'yicha dars taqsimotini sinash
 npm run bench:seeds  # turli urug'larda barqarorlikni sinash
+npm run bench:excel  # Excel eksport → import → jadval zanjirini sinash
 ```
 
 Interfeys **yorug'** va **qorong'i** mavzuda ishlaydi — yon paneldagi tugmadan
@@ -40,10 +41,72 @@ Barcha qator va ustun yig'indilari rasmiy hujjat bilan solishtirib tekshirilgan
 | O'qituvchilar | Malaka toifasi, mutaxassislik, o'qita oladigan fanlar, yuklama chegarasi, band kunlar |
 | O'quv reja | Fan × sinf matritsasi — istalgan soatni tahrirlash |
 | Tarifikatsiya | Har bir (sinf, fan) uchun o'qituvchi biriktirish + darslarni boshqa o'qituvchiga o'tkazish |
+| Excel | O'qituvchilar, toifalar va tarifikatsiyani Excelga chiqarish; tayyor fayldan o'qib jadval tuzish |
 | Shartlar va izohlar | Metodik kunlar, bo'sh kun, bo'sh soat, aniq soat, kunlik chegara, erkin izoh |
 | Jadval yaratish | Cheklovlarni sozlash, yangidan yaratish yoki minimal o'zgarish bilan qayta hisoblash |
 | Dars jadvali | Sinf / o'qituvchi / umumiy ko'rinish, qo'lda tahrirlash, qulflash, chop etish, CSV |
 | Tekshiruv | Tuzilgan jadvalning barcha qoidalarga mosligini mustaqil tekshirish |
+
+## Excel bilan ishlash
+
+Butun tarifikatsiyani — kim, qaysi sinfda, qaysi fandan, necha soat dars beradi —
+Excelda tayyorlab, keyin shu fayl asosida jadval tuzish mumkin.
+
+### Yuklab olish
+
+«Excel» bo'limidagi ikkita tugma:
+
+- **Excelga yuklab olish** — bazadagi joriy holat to'ldirilgan holda chiqadi;
+- **Bo'sh shablon** — faqat sarlavhalar va ma'lumotnoma qoladi.
+
+Kitobda 4 ta varaq bo'ladi:
+
+| Varaq | Mazmuni |
+|---|---|
+| O'qituvchilar | F.I.Sh., toifa, mutaxassislik, o'qitadigan fanlar, min/max soat, sinf rahbarligi, bo'sh kunlar |
+| Tarifikatsiya | Har bir qator — bitta o'qituvchining bitta sinfdagi bitta fani va haftalik soati |
+| Sinflar | Sinflar, sinf rahbari, o'quv kunlari va haftalik soat |
+| Ma'lumotnoma | To'ldirish qoidalari, fanlar ro'yxati, toifalar va hafta kunlari |
+
+Xuddi shu kitobni «O'qituvchilar» va «Tarifikatsiya» bo'limlaridagi **Excel** tugmasi ham beradi.
+
+### Yuklash
+
+Fayl «Excel» bo'limiga tashlanadi yoki tanlanadi. O'qishdan oldin mazmuni ko'rsatiladi:
+nechta o'qituvchi, nechta dars qatori, jami soat, qaysi qatorlarda ogohlantirish bor.
+Faqat shundan keyin «Qo'llash» bosiladi.
+
+Fayl **erkin to'ldirilishi** mumkin — o'qish sarlavha nomlari bo'yicha boradi:
+
+- ustunlar tartibi ixtiyoriy, sarlavhalar sinonim bo'lishi mumkin
+  («F.I.Sh.» / «F.I.O» / «O'qituvchi», «Toifa» / «Daraja», «Haftalik soat» / «Soat» …);
+- sinf «7-A», «7A», «7 A» yoki «7-А» (kirill) ko'rinishida yozilaveradi;
+- fan to'liq nomi bilan ham, qisqartmasi bilan ham beriladi («Jismoniy tarbiya», «Jism.t.»);
+- toifa: «Oliy toifa», «1-toifa», «2-toifa», «Toifasiz» yoki shunga yaqin yozuv;
+- faylda uchragan yangi o'qituvchi va yangi sinf avtomatik qo'shiladi.
+
+Tanilmagan qiymat jimgina tashlab yuborilmaydi — qator raqami bilan ogohlantirishga tushadi.
+
+### Qo'llashdagi ikki tanlov
+
+| Bayroq | Ma'nosi |
+|---|---|
+| Faqat fayldagi o'qituvchilar qolsin | Bazadagi, faylda uchramagan o'qituvchilar o'chiriladi. Belgilanmasa — saqlanadi |
+| Sinf o'quv rejasi aynan fayl bo'yicha | Faylda ko'rsatilmagan fanlar o'sha sinfda 0 soat bo'ladi |
+
+Ikkinchi bayroq yoqilganda tuzilgan jadval faylga **to'liq** mos tushadi: fayldagi soatlar
+sinf o'quv rejasiga, o'qituvchilar esa tarifikatsiyaga yoziladi. Shu sababli «Jadval yaratish»da
+avtomatik taqsimot umuman ishlamaydi — hamma narsa fayldagidek qoladi.
+
+Sinf rahbari ko'rsatilgan bo'lsa, unga o'z sinfida 1 soat **Ma'naviyat soati** avtomatik qo'shiladi.
+
+### Sinov (`npm run bench:excel`)
+
+Skript butun zanjirni tekshiradi: 30 sinf va 60 o'qituvchi Excelga yoziladi, fayl bo'sh
+bazaga qayta o'qiladi va 465 ta biriktirish, toifalar, sinf rahbarlari hamda soatlar
+bir xilligi solishtiriladi. So'ng qo'lda tuzilgan (sarlavhalari boshqacha, ustunlari
+boshqa tartibdagi) fayl o'qiladi va oxirida import qilingan ma'lumot bilan jadval tuzilib,
+tekshiruvchidan o'tkaziladi — **0 xato**.
 
 ## Malaka toifasi va stavka bo'yicha taqsimot
 
@@ -282,6 +345,7 @@ src/
   lib/theme.ts          — yorug'/qorong'i mavzu
   components/icons.ts   — barcha ikonkalar (react-icons / Lucide)
   components/Select.tsx — maxsus tanlagich (qidiruv, klaviatura, guruhlash)
+  lib/excel.ts          — Excel eksport/import (SheetJS, talab bo'lganda yuklanadi)
   lib/view.ts           — jadvalni ko'rsatish uchun indeks
   lib/export.ts         — CSV / JSON eksport
   scheduler/assign.ts   — tarifikatsiya + darslarni o'tkazish

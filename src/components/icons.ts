@@ -38,4 +38,7 @@ export {
   LuAward as IcoCategory,
   LuClock as IcoClock,
   LuFilter as IcoFilter,
+  LuUpload as IcoUpload,
+  LuFileSpreadsheet as IcoExcel,
+  LuFileDown as IcoTemplate,
 } from 'react-icons/lu'
