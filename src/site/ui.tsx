@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Photo } from '../components/Photo'
 import { IcoArrowRight } from '../components/icons'
+import GridBeams from './GridBeams'
 import type { IconType } from '../components/icons'
 
 /* ─────────────────────────── Bo'lim sarlavhasi ─────────────────────────── */
@@ -163,7 +164,7 @@ export function PageHero({
 }) {
   return (
     <section className="relative overflow-hidden border-b border-line bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800">
-      <div className="grid-pattern absolute inset-0" />
+      <GridBeams compact />
       <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
       <div className="site-wrap relative py-12 sm:py-16">
         {eyebrow && (

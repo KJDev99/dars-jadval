@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useStore } from '../store'
 import { Photo } from '../components/Photo'
 import { BigStat, MoreLink, PersonCard, Reveal, SectionHead } from './ui'
+import GridBeams from './GridBeams'
 import { LEVEL_LABELS } from '../types'
 import {
   IcoTeachers, IcoClasses, IcoGraduation, IcoTrophy, IcoSchedule, IcoArrowRight,
@@ -39,7 +40,7 @@ export default function HomePage() {
     <>
       {/* ═══════════════════════ Bosh ekran ═══════════════════════ */}
       <section className="relative overflow-hidden border-b border-line bg-gradient-to-br from-indigo-700 via-indigo-800 to-violet-900">
-        <div className="grid-pattern absolute inset-0 opacity-70" />
+        <GridBeams opacity={0.7} />
         <div className="absolute -left-20 top-1/3 h-80 w-80 rounded-full bg-sky-400/20 blur-3xl" />
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-violet-400/20 blur-3xl" />
 
@@ -286,7 +287,7 @@ export default function HomePage() {
       <section className="section pt-0">
         <div className="site-wrap">
           <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-600 to-violet-700 p-8 shadow-hero sm:p-12">
-            <div className="grid-pattern absolute inset-0 opacity-60" />
+            <GridBeams opacity={0.6} compact />
             <div className="relative flex flex-wrap items-center justify-between gap-6">
               <div className="max-w-xl">
                 <IcoQuote className="mb-3 h-6 w-6 text-white/60" />

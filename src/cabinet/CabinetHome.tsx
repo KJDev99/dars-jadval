@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useMe, todayIndex } from './useMe'
 import { Photo } from '../components/Photo'
+import GridBeams from '../site/GridBeams'
 import { Stat } from '../components/ui'
 import { teacherWeekHours, gapsOfDay } from '../lib/view'
 import { formatStavka } from '../lib/derive'
@@ -40,7 +41,7 @@ export default function CabinetHome() {
     <div className="space-y-5">
       {/* Salomlashuv */}
       <section className="relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-600 to-violet-700 p-6 shadow-hero">
-        <div className="grid-pattern absolute inset-0 opacity-60" />
+        <GridBeams opacity={0.6} compact />
         <div className="relative flex flex-wrap items-center gap-5">
           <Photo
             src={teacher.photo}

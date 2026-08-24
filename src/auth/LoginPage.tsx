@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore } from '../store'
 import { useAuth, normNumber, normSeries } from '../authStore'
 import { Field } from '../components/ui'
+import GridBeams from '../site/GridBeams'
 import {
   IcoSchedule, IcoLogin, IcoKey, IcoUser, IcoPassport, IcoError, IcoShield, IcoAccount,
   IcoArrowRight, IcoEye, IcoInfo,
@@ -45,7 +46,7 @@ export default function LoginPage() {
     <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
       {/* ── Chap tomon: brend ─────────────────────────────────────────── */}
       <div className="relative hidden overflow-hidden bg-gradient-to-br from-indigo-700 via-indigo-800 to-violet-900 lg:block">
-        <div className="grid-pattern absolute inset-0 opacity-70" />
+        <GridBeams opacity={0.7} />
         <div className="absolute -left-24 bottom-0 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl" />
         <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-violet-400/25 blur-3xl" />
 

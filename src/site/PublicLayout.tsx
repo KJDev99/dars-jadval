@@ -48,7 +48,13 @@ export default function PublicLayout() {
         : null
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas">
+    <div className="relative isolate flex min-h-screen flex-col">
+      {/* Sayt ostidagi jonli fon — sekin suzuvchi rangli dog'lar */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <span className="absolute -left-40 top-[-12%] h-[38rem] w-[38rem] rounded-full bg-indigo-500/[0.07] blur-3xl dark:bg-indigo-500/[0.12]" />
+        <span className="absolute -right-40 top-[32%] h-[32rem] w-[32rem] rounded-full bg-violet-500/[0.07] blur-3xl dark:bg-violet-500/[0.12]" />
+        <span className="absolute bottom-[-12%] left-[28%] h-[28rem] w-[28rem] rounded-full bg-sky-500/[0.06] blur-3xl dark:bg-sky-500/[0.10]" />
+      </div>
       {/* ── Yuqori qator ─────────────────────────────────────────────── */}
       <div className="no-print hidden border-b border-line bg-surface text-xs text-muted lg:block">
         <div className="site-wrap flex h-9 items-center justify-between">

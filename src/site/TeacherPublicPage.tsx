@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useStore } from '../store'
 import { Photo } from '../components/Photo'
 import Timetable from './Timetable'
+import GridBeams from './GridBeams'
 import { buildIndex, teacherWeekHours } from '../lib/view'
 import { useIsDark } from '../lib/theme'
 import { formatStavka } from '../lib/derive'
@@ -45,7 +46,7 @@ export default function TeacherPublicPage() {
     <>
       {/* Yuqori qism */}
       <section className="relative overflow-hidden border-b border-line bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800">
-        <div className="grid-pattern absolute inset-0 opacity-70" />
+        <GridBeams opacity={0.7} compact />
         <div className="site-wrap relative py-10 sm:py-14">
           <Link
             to="/oqituvchilar"

@@ -2,6 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+
+/* To'r chizig'i bo'ylab pastga yuguruvchi nur.
+   Nur balandligi blokning 36% i — shuning uchun to'liq o'tishi uchun
+   280% siljishi kerak. Vaqtning ~40% ida yuguradi, qolganida kutadi. */
+@keyframes grid-beam-y {
+  0% {
+    transform: translate3d(0, -100%, 0);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  38% {
+    transform: translate3d(0, 280%, 0);
+    opacity: 1;
+  }
+  46%,
+  100% {
+    transform: translate3d(0, 280%, 0);
+    opacity: 0;
+  }
+}
+
+/* Gorizontal chiziq bo'ylab — nur kengligi 30%, to'liq o'tish 340% */
+@keyframes grid-beam-x {
+  0% {
+    transform: translate3d(-100%, 0, 0);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  38% {
+    transform: translate3d(340%, 0, 0);
+    opacity: 1;
+  }
+  46%,
+  100% {
+    transform: translate3d(340%, 0, 0);
+    opacity: 0;
+  }
+}
+
+
+
 /* ─────────────────────────── Mavzu tokenlari ─────────────────────────── */
 @layer base {
   :root {
@@ -213,6 +258,60 @@
   }
 
   /* Ko'tariladigan karta — hover'da faqat soya va chegara o'zgaradi */
+  /* ── Orqa fon jonlanishi ────────────────────────────────────────────
+     `.gbeam-v` / `.gbeam-h` — to'r chiziqlari ustida yuguruvchi nur.
+     Bosilmaydi va matnni to'smaydi. */
+  .gbeam-v,
+  .gbeam-h {
+    position: absolute;
+    animation-duration: var(--gb-duration, 10s);
+    animation-delay: var(--gb-delay, 0s);
+    animation-timing-function: cubic-bezier(0.35, 0, 0.45, 1);
+    animation-iteration-count: infinite;
+    will-change: transform, opacity;
+  }
+
+  /* Vertikal chiziq bo'ylab tushuvchi nur */
+  .gbeam-v {
+    top: 0;
+    width: 1px;
+    height: 36%;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgb(255 255 255 / 0.25) 45%,
+      rgb(255 255 255 / 0.75) 82%,
+      rgb(255 255 255 / 1) 100%
+    );
+    box-shadow: 0 0 14px 1px rgb(255 255 255 / 0.5);
+    animation-name: grid-beam-y;
+  }
+
+  /* Gorizontal chiziq bo'ylab o'ngga ketuvchi nur */
+  .gbeam-h {
+    left: 0;
+    height: 1px;
+    width: 30%;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgb(255 255 255 / 0.22) 45%,
+      rgb(255 255 255 / 0.7) 82%,
+      rgb(255 255 255 / 1) 100%
+    );
+    box-shadow: 0 0 14px 1px rgb(255 255 255 / 0.45);
+    animation-name: grid-beam-x;
+  }
+
+
+  @media (prefers-reduced-motion: reduce) {
+    .gbeam-v,
+    .gbeam-h {
+      animation: none;
+      opacity: 0;
+    }
+  }
+
   .card-lift {
     @apply card overflow-hidden transition-[box-shadow,border-color] duration-200
            hover:border-line-strong hover:shadow-lift;

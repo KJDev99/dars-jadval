@@ -68,6 +68,24 @@ Barcha rasmlar uchun joy tayyorlangan: rasm yuklanmagan bo'lsa ismdan olingan bo
 harflar va ismga bog'liq rangdagi chiroyli o'rin egallagich chiziladi. Rasm yuklanganda
 u brauzerda 900 px gacha kichraytirilib, JPEG ga siqiladi.
 
+### To'r chiziqlari bo'ylab yuguruvchi nur
+
+Ko'k-binafsha bloklardagi orqa fon to'ri (46 px li kvadratlar) endi jonli: chiziqlar
+ustida yorug'lik nurlari yugurib o'tadi.
+
+- nurlar to'rning **aynan chiziqlari** ustida turadi — `left: 46px × indeks`;
+- oltita vertikal (pastga) va uchta gorizontal (o'ngga) nur, har biri o'z tezligi
+  (8,5–15 s) va kechikishi bilan — hech qachon bir vaqtda yugurmaydi;
+- har bir nur tsiklning ~32% ida harakat qiladi, qolganida kutadi — shuning uchun
+  chiziq «har necha soniyada birdan yugurib o'tgandek» ko'rinadi;
+- faqat `transform` va `opacity` animatsiya qilinadi (GPU da ishlaydi).
+
+Komponent: `src/site/GridBeams.tsx`. Qayerda ishlatiladi: bosh ekran, ichki
+sahifalarning yuqori qismi, chaqiruv bloki, pedagog sahifasi, kirish sahifasi va
+kabinet salomlashuvi. Kichik bloklar uchun `compact` bayrog'i nurlar sonini kamaytiradi.
+
+`prefers-reduced-motion: reduce` yoqilgan bo'lsa nurlar ko'rinmaydi — faqat to'r qoladi.
+
 ## O'qituvchining shaxsiy kabineti
 
 O'qituvchi pasport seriyasi (2 harf) va raqami (7 raqam) bilan kiradi.
