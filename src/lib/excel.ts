@@ -19,7 +19,7 @@ import { asgKey, effectiveHours, teacherLoads, type PlanOverrides } from './deri
  * shuning uchun alohida bo'lakka ajratilib, talab bo'lgandagina yuklanadi.
  */
 let xlsxPromise: Promise<typeof XLSX> | null = null
-const loadXlsx = () => (xlsxPromise ??= import('xlsx'))
+export const loadXlsx = () => (xlsxPromise ??= import('xlsx'))
 
 /* ────────────────────────────── Varaq nomlari ────────────────────────────── */
 

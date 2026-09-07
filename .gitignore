@@ -1,11 +1,9 @@
 node_modules
 dist
-scripts/.bench.mjs
-scripts/.bench-inc.mjs
 *.local
 .DS_Store
-scripts/.bench-seeds.mjs
-scripts/.bench-cat.mjs
-scripts/.bench-excel.mjs
-scripts/.bench-site.mjs
-scripts/.smoke.mjs
+
+# esbuild yig'adigan vaqtinchalik sinov to'plamlari
+scripts/.bench-*.mjs
+scripts/.bench.mjs
+scripts/.smoke*.mjs

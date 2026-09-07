@@ -2,12 +2,17 @@ import { useMemo } from 'react'
 import { useStore } from '../store'
 import { Page, PageHeader, Stat } from '../components/ui'
 import { classTotalHours, classPlanHours, teacherLoads, formatStavka } from '../lib/derive'
-import { CATEGORY_LABELS, CATEGORY_ORDER, CATEGORY_SHORT } from '../types'
+import { CATEGORY_LABELS, CATEGORY_ORDER, CATEGORY_SHORT, QUARTER_LABELS } from '../types'
 import { OFFICIAL_TOTALS } from '../data/curriculum'
+import { ball, buildGradeBook, pct } from '../lib/grading'
+import { IcoGrade, IcoNext, IcoWarn } from '../components/icons'
 import type { PageId } from '../admin/nav'
 
 export default function Dashboard({ onNavigate }: { onNavigate: (p: PageId) => void }) {
-  const { classes, teachers, overrides, assignments, schedule, settings, rules, scheduleStale } = useStore()
+  const {
+    classes, teachers, overrides, assignments, schedule, settings, rules, scheduleStale,
+    students, assessments,
+  } = useStore()
 
   const stats = useMemo(() => {
     const totalHours = classes.reduce((s, c) => s + classTotalHours(c, overrides), 0)
@@ -29,6 +34,16 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: PageId) => v
     }
     return out
   }, [stats.grades, classes, overrides])
+
+  const quarter = settings.grading.currentQuarter
+  const book = useMemo(
+    () =>
+      buildGradeBook({
+        classes, students, teachers, assessments, assignments, overrides, settings, quarter,
+      }),
+    [classes, students, teachers, assessments, assignments, overrides, settings, quarter],
+  )
+  const notReady = book.totals.cells - book.totals.ready
 
   return (
     <Page>
@@ -159,6 +174,44 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: PageId) => v
             ))}
           </ol>
         </div>
+      </div>
+
+      {/* ── Chorak natijalari ─────────────────────────────────────── */}
+      <div className="card mt-4 p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <IcoGrade className="h-4 w-4 text-indigo-500" />
+          <h2 className="font-semibold text-fg">Summativ baholash — {QUARTER_LABELS[quarter]}</h2>
+          <button className="btn-ghost ml-auto" onClick={() => onNavigate('grades')}>
+            Batafsil <IcoNext className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {book.totals.works === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            Bu chorak uchun hali natija yo'q. O'qituvchilar shaxsiy kabinetdagi «BSB va ChSB»
+            bo'limidan ball kiritadi.
+          </p>
+        ) : (
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Stat label="O'rtacha ball" value={ball(book.school.avgMark)} hint={`${book.school.count} ta baho`} tone="indigo" />
+              <Stat label="Sifat" value={pct(book.school.quality)} hint="«4» va «5»" tone="emerald" />
+              <Stat label="O'zlashtirish" value={pct(book.school.progress)} hint="«3» va yuqori" />
+              <Stat
+                label="Tayyor sinf-fan"
+                value={`${book.totals.ready} / ${book.totals.cells}`}
+                hint={notReady > 0 ? `${notReady} tasi topshirilmagan` : "reja bajarildi"}
+                tone={notReady > 0 ? 'amber' : 'emerald'}
+              />
+            </div>
+            {notReady > 0 && (
+              <p className="mt-3 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
+                <IcoWarn className="h-3.5 w-3.5 shrink-0" />
+                {notReady} ta sinf-fan bo'yicha BSB yoki ChSB topshirilmagan.
+              </p>
+            )}
+          </>
+        )}
       </div>
 
       {(stats.over > 0 || stats.under > 0) && (

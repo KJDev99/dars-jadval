@@ -96,7 +96,9 @@ export default function CabinetRequests() {
                 value={kind}
                 onChange={(v) => { setKind(v as RequestKind); setSent(false) }}
                 options={(Object.keys(REQUEST_KIND_LABELS) as RequestKind[])
-                  .filter((k) => k !== 'profil')
+                  // «Profil» va «Baho» so'rovlari o'z bo'limlaridan yuboriladi —
+                  // ular so'ralayotgan yozuvga bog'lanishi kerak
+                  .filter((k) => k !== 'profil' && k !== 'baho')
                   .map((k) => ({ value: k, label: REQUEST_KIND_LABELS[k] }))}
               />
             </Field>

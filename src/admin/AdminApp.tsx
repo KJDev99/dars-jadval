@@ -18,6 +18,8 @@ import RulesPage from '../pages/RulesPage'
 import GeneratePage from '../pages/GeneratePage'
 import SchedulePage from '../pages/SchedulePage'
 import ReportPage from '../pages/ReportPage'
+import GradesPage from '../pages/GradesPage'
+import StudentsPage from '../pages/StudentsPage'
 import RequestsPage from '../pages/RequestsPage'
 import SitePage from '../pages/SitePage'
 import UsersPage from '../pages/UsersPage'
@@ -214,6 +216,8 @@ export default function AdminApp() {
             <Route path="yaratish" element={<GeneratePage />} />
             <Route path="jadval" element={<SchedulePage />} />
             <Route path="tekshiruv" element={<ReportPage />} />
+            <Route path="baholash" element={<GradesPage />} />
+            <Route path="oquvchilar" element={<StudentsPage />} />
             <Route path="sorovlar" element={<RequestsPage />} />
             {director && <Route path="sayt" element={<SitePage />} />}
             {director && <Route path="foydalanuvchilar" element={<UsersPage />} />}

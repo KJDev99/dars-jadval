@@ -83,6 +83,9 @@ export {
   LuHeart as IcoHeart,
   LuFlag as IcoFlag,
   LuContact as IcoContact,
+  LuClipboardCheck as IcoGrade,
+  LuNotebookPen as IcoJournal,
+  LuBookUser as IcoStudents,
 } from 'react-icons/lu'
 
 /** Barcha ikonkalar uchun umumiy tur */

@@ -11,7 +11,7 @@ import {
 import type { RequestKind, RequestStatus, Teacher, TeacherRequest } from '../types'
 import {
   IcoInbox, IcoOk, IcoClose, IcoClock, IcoMessage, IcoSend, IcoTrash, IcoEye,
-  IcoGenerate, IcoWarn, IcoUser,
+  IcoGenerate, IcoWarn, IcoUser, IcoGrade,
 } from '../components/icons'
 
 const STATUS_TINT: Record<RequestStatus, string> = {
@@ -178,6 +178,19 @@ export default function RequestsPage() {
                       </div>
                     )}
 
+                    {r.kind === 'baho' && open && (
+                      <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-700 dark:text-indigo-300">
+                        <IcoGrade className="h-4 w-4 shrink-0" />
+                        <span className="flex-1">
+                          Qabul qilinsa, topshirilgan baholash ishi o'qituvchiga qayta tahrirlash
+                          uchun ochiladi va u qaytadan topshirmaguncha hisobotdan chiqib turadi.
+                        </span>
+                        <Link to="/boshqaruv/baholash" className="btn-ghost shrink-0">
+                          <IcoGrade className="h-3.5 w-3.5" /> Natijalar
+                        </Link>
+                      </div>
+                    )}
+
                     {r.kind === 'jadval' && open && (
                       <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
                         <IcoWarn className="h-4 w-4 shrink-0" />
@@ -219,7 +232,11 @@ export default function RequestsPage() {
                         <div className="mt-3 grid gap-2">
                           <button className="btn-primary w-full" onClick={() => act(r, 'qabul')}>
                             <IcoOk className="h-4 w-4" /> Qabul qilish
-                            {r.kind === 'profil' && r.proposed ? ' va qo‘llash' : ''}
+                            {r.kind === 'profil' && r.proposed
+                              ? ' va qo‘llash'
+                              : r.kind === 'baho' && r.assessmentId
+                                ? ' va ochish'
+                                : ''}
                           </button>
                           <div className="grid grid-cols-2 gap-2">
                             {r.status === 'yangi' && (

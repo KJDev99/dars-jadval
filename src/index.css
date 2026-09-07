@@ -111,8 +111,8 @@
 @layer components {
   /* ───────────────────────────── Tugmalar ───────────────────────────── */
   .btn {
-    @apply relative inline-flex select-none items-center justify-center gap-1.5 rounded-lg px-3 py-1.5
-           text-sm font-medium leading-5 outline-none
+    @apply relative inline-flex select-none items-center justify-center gap-1.5 whitespace-nowrap
+           rounded-lg px-3 py-1.5 text-sm font-medium leading-5 outline-none
            transition-[background-color,border-color,color,box-shadow] duration-150 ease-out
            focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-1
            focus-visible:ring-offset-surface
@@ -151,8 +151,8 @@
     @apply inline-flex overflow-hidden rounded-lg border border-line bg-surface p-0.5;
   }
   .seg-item {
-    @apply inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium text-muted
-           transition-colors duration-150 hover:text-fg;
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-sm
+           font-medium text-muted transition-colors duration-150 hover:text-fg;
   }
   .seg-item-on {
     @apply bg-indigo-600 text-white shadow-sm hover:text-white;
@@ -250,8 +250,8 @@
 
   /* Saytdagi navigatsiya havolasi */
   .nav-link {
-    @apply relative rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors
-           hover:bg-raised hover:text-fg;
+    @apply relative whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-muted
+           transition-colors hover:bg-raised hover:text-fg;
   }
   .nav-link-on {
     @apply bg-indigo-500/10 text-indigo-700 dark:text-indigo-300;

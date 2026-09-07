@@ -18,13 +18,33 @@ import AdminApp from '../src/admin/AdminApp'
 import CabinetLayout from '../src/cabinet/CabinetLayout'
 import CabinetHome from '../src/cabinet/CabinetHome'
 import CabinetSchedule from '../src/cabinet/CabinetSchedule'
+import CabinetGrades from '../src/cabinet/CabinetGrades'
 import CabinetProfile from '../src/cabinet/CabinetProfile'
 import CabinetRequests from '../src/cabinet/CabinetRequests'
 import { useStore } from '../src/store'
 import { useAuth } from '../src/authStore'
+import { autoAssign } from '../src/scheduler/assign'
 
 const phase = process.env.SMOKE ?? 'public'
 let failures = 0
+
+/**
+ * Yopiq bo'limlar bo'sh baza bilan sinalsa, jadvallar ham bo'sh chiqadi.
+ * Shuning uchun tarifikatsiyani avtomatik to'ldirib, bir chorak uchun
+ * namunaviy BSB/ChSB natijalarini yaratamiz.
+ */
+function prepareData() {
+  const st = useStore.getState()
+  const { assignments } = autoAssign(st.classes, st.teachers, st.overrides, {}, false, 7)
+  useStore.setState({ assignments })
+  const made = st.seedDemoGrades(1)
+  const book = useStore.getState().assessments.length
+  console.log(`  ma'lumot: ${Object.keys(assignments).length} ta biriktirish, ${made} ta baholash ishi (${book} saqlandi)`)
+  if (made === 0) {
+    console.log('  ✗ namunaviy baholash yaratilmadi')
+    failures++
+  }
+}
 
 function render(name: string, node: JSX.Element, minBytes = 2000) {
   try {
@@ -87,6 +107,7 @@ if (phase === 'public') {
 
 if (phase === 'cabinet') {
   console.log('=== O‘QITUVCHI KABINETI ===')
+  prepareData()
   const me = SMOKE_TEACHER
   const session = useAuth.getState().session
   console.log(`  o‘qituvchi: ${me.fullName} (${me.passportSeries} ${me.passportNumber})`)
@@ -101,6 +122,7 @@ if (phase === 'cabinet') {
         <Route path="/kabinet" element={<CabinetLayout />}>
           <Route index element={page} />
           <Route path="jadval" element={page} />
+          <Route path="baholash" element={page} />
           <Route path="malumot" element={page} />
           <Route path="sorovlar" element={page} />
         </Route>
@@ -110,6 +132,7 @@ if (phase === 'cabinet') {
 
   render('Kabinet — bosh sahifa', cabinet('/kabinet', <CabinetHome />))
   render('Kabinet — jadval', cabinet('/kabinet/jadval', <CabinetSchedule />))
+  render('Kabinet — BSB va ChSB', cabinet('/kabinet/baholash', <CabinetGrades />))
   render('Kabinet — ma’lumotlar', cabinet('/kabinet/malumot', <CabinetProfile />))
   render('Kabinet — so‘rovlar', cabinet('/kabinet/sorovlar', <CabinetRequests />))
 }
@@ -119,6 +142,7 @@ if (phase === 'cabinet') {
 if (phase === 'admin' || phase === 'zavuch') {
   const director = phase === 'admin'
   console.log(`=== MA’MURIYAT PANELI (${director ? 'direktor' : 'zavuch'}) ===`)
+  prepareData()
   const session = useAuth.getState().session
   if (session?.role !== (director ? 'director' : 'zavuch')) {
     console.log('  ✗ seans tiklanmadi')
@@ -145,6 +169,8 @@ if (phase === 'admin' || phase === 'zavuch') {
     ['Dars jadvali', '/boshqaruv/jadval'],
     ['Tekshiruv', '/boshqaruv/tekshiruv'],
     ['So‘rovlar', '/boshqaruv/sorovlar'],
+    ['BSB va ChSB', '/boshqaruv/baholash'],
+    ['O‘quvchilar', '/boshqaruv/oquvchilar'],
   ] as const
 
   for (const [name, path] of pages) render(name, admin(path))

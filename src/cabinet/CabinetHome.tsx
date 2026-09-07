@@ -1,16 +1,19 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useStore } from '../store'
 import { useMe, todayIndex } from './useMe'
 import { Photo } from '../components/Photo'
 import GridBeams from '../site/GridBeams'
 import { Stat } from '../components/ui'
 import { teacherWeekHours, gapsOfDay } from '../lib/view'
 import { formatStavka } from '../lib/derive'
-import { CATEGORY_LABELS, DAY_NAMES, REQUEST_STATUS_LABELS } from '../types'
+import { CATEGORY_LABELS, DAY_NAMES, QUARTER_LABELS, REQUEST_STATUS_LABELS } from '../types'
 import type { RequestStatus } from '../types'
+import { ball, buildGradeBook, cellKey, teacherCells } from '../lib/grading'
 import { SUBJECT_BY_ID } from '../data/curriculum'
 import {
   IcoSchedule, IcoClock, IcoClasses, IcoCategory, IcoInbox, IcoArrowRight, IcoBook,
-  IcoCheck, IcoInfo, IcoSend,
+  IcoCheck, IcoInfo, IcoSend, IcoGrade, IcoWarn,
 } from '../components/icons'
 import type { IconType } from '../components/icons'
 
@@ -22,7 +25,23 @@ export const STATUS_TINT: Record<RequestStatus, string> = {
 }
 
 export default function CabinetHome() {
-  const { teacher, idx, constraints, myRequests, settings, schedule } = useMe()
+  const { teacher, idx, constraints, myRequests, settings, schedule, classes } = useMe()
+  const { students, teachers, assessments, assignments, overrides } = useStore()
+
+  const quarter = settings.grading.currentQuarter
+  const grades = useMemo(() => {
+    if (!teacher) return null
+    const mine = teacherCells(teacher.id, classes, assignments, overrides, settings.grading)
+    const book = buildGradeBook({
+      classes, students, teachers, assessments, assignments, overrides, settings, quarter,
+      includeDrafts: true,
+    })
+    const ready = mine.filter(
+      (c) => book.cells.get(cellKey(c.classId, c.subjectId))?.status === 'tayyor',
+    ).length
+    return { total: mine.length, ready, summary: book.byTeacher.find((t) => t.teacherId === teacher.id) }
+  }, [teacher, classes, students, teachers, assessments, assignments, overrides, settings, quarter])
+
   if (!teacher) return null
 
   const today = todayIndex()
@@ -156,6 +175,43 @@ export default function CabinetHome() {
               </ul>
             )}
           </div>
+
+          {/* BSB va ChSB */}
+          {grades && grades.total > 0 && (
+            <div className="card overflow-hidden">
+              <div className="flex items-center justify-between border-b border-line bg-raised px-4 py-2.5">
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-fg-2">
+                  <IcoGrade className="h-4 w-4 text-indigo-500" />
+                  BSB va ChSB · {QUARTER_LABELS[quarter]}
+                </h2>
+                <Link to="/kabinet/baholash" className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                  Ochish
+                </Link>
+              </div>
+              <div className="grid grid-cols-3 divide-x divide-line-soft">
+                <div className="p-3 text-center">
+                  <div className="text-xl font-bold text-fg">{grades.ready}/{grades.total}</div>
+                  <div className="text-[11px] text-faint">tayyor</div>
+                </div>
+                <div className="p-3 text-center">
+                  <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                    {ball(grades.summary?.summary.avgMark ?? null)}
+                  </div>
+                  <div className="text-[11px] text-faint">o'rtacha ball</div>
+                </div>
+                <div className="p-3 text-center">
+                  <div className="text-xl font-bold text-fg">{grades.summary?.summary.count ?? 0}</div>
+                  <div className="text-[11px] text-faint">baho</div>
+                </div>
+              </div>
+              {grades.ready < grades.total && (
+                <p className="flex items-center gap-2 border-t border-line-soft px-4 py-2 text-[11px] text-amber-700 dark:text-amber-300">
+                  <IcoWarn className="h-3.5 w-3.5 shrink-0" />
+                  {grades.total - grades.ready} ta sinf-fanda ish topshirilmagan.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Eslatmalar */}
           <div className="card p-4">

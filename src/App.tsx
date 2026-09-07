@@ -23,6 +23,7 @@ const LoginPage = lazy(() => import('./auth/LoginPage'))
 const CabinetLayout = lazy(() => import('./cabinet/CabinetLayout'))
 const CabinetHome = lazy(() => import('./cabinet/CabinetHome'))
 const CabinetSchedule = lazy(() => import('./cabinet/CabinetSchedule'))
+const CabinetGrades = lazy(() => import('./cabinet/CabinetGrades'))
 const CabinetProfile = lazy(() => import('./cabinet/CabinetProfile'))
 const CabinetRequests = lazy(() => import('./cabinet/CabinetRequests'))
 const AdminApp = lazy(() => import('./admin/AdminApp'))
@@ -78,6 +79,7 @@ export default function App() {
         >
           <Route index element={<CabinetHome />} />
           <Route path="jadval" element={<CabinetSchedule />} />
+          <Route path="baholash" element={<CabinetGrades />} />
           <Route path="malumot" element={<CabinetProfile />} />
           <Route path="sorovlar" element={<CabinetRequests />} />
         </Route>

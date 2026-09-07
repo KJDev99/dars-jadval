@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useStore } from '../store'
 import { useAuth } from '../authStore'
 import { Photo } from '../components/Photo'
+import { InstallBanner, InstallButton } from '../components/InstallApp'
 import { THEME_LABELS } from '../lib/theme'
 import type { ThemeMode } from '../lib/theme'
 import {
@@ -58,18 +59,20 @@ export default function PublicLayout() {
       {/* ── Yuqori qator ─────────────────────────────────────────────── */}
       <div className="no-print hidden border-b border-line bg-surface text-xs text-muted lg:block">
         <div className="site-wrap flex h-9 items-center justify-between">
-          <div className="flex items-center gap-5">
-            <span className="flex items-center gap-1.5">
-              <IcoMapPin className="h-3.5 w-3.5 text-faint" /> {profile.address}
+          <div className="flex min-w-0 items-center gap-5">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <IcoMapPin className="h-3.5 w-3.5 shrink-0 text-faint" />
+              <span className="truncate">{profile.address}</span>
             </span>
-            <a href={`tel:${profile.phone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 transition-colors hover:text-fg">
+            <a href={`tel:${profile.phone.replace(/\s/g, '')}`} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-fg">
               <IcoPhone className="h-3.5 w-3.5 text-faint" /> {profile.phone}
             </a>
-            <a href={`mailto:${profile.email}`} className="flex items-center gap-1.5 transition-colors hover:text-fg">
+            <a href={`mailto:${profile.email}`} className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap transition-colors hover:text-fg xl:flex">
               <IcoMail className="h-3.5 w-3.5 text-faint" /> {profile.email}
             </a>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3 pl-4">
+            <InstallButton variant="link" />
             {profile.telegram && (
               <a href={profile.telegram} target="_blank" rel="noreferrer" title="Telegram"
                 className="transition-colors hover:text-fg"><IcoSend className="h-3.5 w-3.5" /></a>
@@ -154,6 +157,7 @@ export default function PublicLayout() {
                   {n.label}
                 </NavLink>
               ))}
+              <InstallButton className="mt-2 w-full justify-start" />
             </div>
           </nav>
         )}
@@ -162,6 +166,8 @@ export default function PublicLayout() {
       <main className="flex-1">
         <Outlet />
       </main>
+
+      <InstallBanner />
 
       {/* ── Pastki qism ──────────────────────────────────────────────── */}
       <footer className="no-print border-t border-line bg-surface">

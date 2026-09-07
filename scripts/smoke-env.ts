@@ -32,6 +32,8 @@ class MemoryStorage implements Storage {
 
 const g = globalThis as unknown as { sessionStorage?: Storage; localStorage?: Storage }
 if (!g.sessionStorage) g.sessionStorage = new MemoryStorage()
+// zustand persist localStorage ni qidiradi — bo'lmasa har yozuvda ogohlantirish beradi
+if (!g.localStorage) g.localStorage = new MemoryStorage()
 
 const phase = process.env.SMOKE ?? 'public'
 

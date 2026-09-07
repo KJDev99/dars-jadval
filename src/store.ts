@@ -1,13 +1,16 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type {
-  AdminUser, Alumnus, Assignments, NewsItem, RequestStatus, Rule, Schedule, SchoolClass,
-  SchoolProfile, Settings, SiteContent, StaffMember, StudentHighlight, Teacher, TeacherRequest,
+  AdminUser, Alumnus, Assessment, AssessmentKind, Assignments, GradingSettings, NewsItem, Quarter,
+  RequestStatus, Rule, Schedule, SchoolClass, SchoolProfile, Settings, SiteContent, StaffMember,
+  Student, StudentHighlight, Teacher, TeacherRequest,
 } from './types'
-import { defaultClasses, defaultSettings, defaultTeachers } from './data/seed'
+import { defaultClasses, defaultGrading, defaultSettings, defaultStudents, defaultTeachers } from './data/seed'
 import { defaultSite, defaultUsers } from './data/site-seed'
-import { emptyOverrides, type PlanOverrides, asgKey } from './lib/derive'
+import { emptyOverrides, type PlanOverrides, asgKey, effectiveHours } from './lib/derive'
 import { SUBJECTS, standardHours } from './data/curriculum'
+import { isGradedGrade, plannedBsbCount } from './lib/grading'
+import { makeRng } from './lib/rng'
 
 /** Excel fayldan olingan va qo'llanadigan ma'lumot */
 export interface ExcelImportPayload {
@@ -43,6 +46,10 @@ interface State {
   requests: TeacherRequest[]
   /** Ma'muriyat foydalanuvchilari */
   users: AdminUser[]
+  /** Sinf jurnallaridagi o'quvchilar */
+  students: Student[]
+  /** BSB va ChSB ishlari */
+  assessments: Assessment[]
 
   // Sinflar
   addClass: (grade: number, letter: string) => void
@@ -85,8 +92,8 @@ interface State {
   upsertStaff: (m: StaffMember) => void
   removeStaff: (id: string) => void
   moveStaff: (id: string, dir: -1 | 1) => void
-  upsertStudent: (x: StudentHighlight) => void
-  removeStudent: (id: string) => void
+  upsertHighlight: (x: StudentHighlight) => void
+  removeHighlight: (id: string) => void
   upsertAlumnus: (x: Alumnus) => void
   removeAlumnus: (id: string) => void
   upsertNews: (x: NewsItem) => void
@@ -100,6 +107,43 @@ interface State {
   // Foydalanuvchilar
   upsertUser: (u: AdminUser) => void
   removeUser: (id: string) => void
+
+  // O'quvchilar
+  addStudent: (classId: string, fullName: string) => void
+  updateStudent: (id: string, patch: Partial<Student>) => void
+  removeStudent: (id: string) => void
+  /** Sinf ro'yxatini to'liq almashtirish (ismlar ro'yxati bo'yicha) */
+  setRoster: (classId: string, names: string[]) => void
+  /** Ro'yxati yo'q sinflarga namunaviy o'quvchilarni yaratish */
+  fillMissingRosters: () => void
+
+  // BSB va ChSB
+  createAssessment: (a: {
+    classId: string
+    subjectId: string
+    teacherId: string
+    quarter: Quarter
+    kind: AssessmentKind
+    title?: string
+    maxScore?: number
+    date?: string
+  }) => string
+  updateAssessment: (id: string, patch: Partial<Assessment>) => void
+  removeAssessment: (id: string) => void
+  /** Bitta o'quvchining ballini qo'yish (null — o'chirish) */
+  setScore: (id: string, studentId: string, value: number | null) => void
+  /** Butun jurnalni almashtirish (Excel yuklashda) */
+  setScores: (id: string, scores: Record<string, number>, absent?: string[]) => void
+  toggleAbsent: (id: string, studentId: string) => void
+  /** Rahbariyatga topshirish — shundan keyin o'qituvchi tahrirlay olmaydi */
+  submitAssessment: (id: string) => void
+  /** Ma'muriyat ishni qayta tahrirlash uchun ochadi */
+  reopenAssessment: (id: string) => void
+  setGrading: (patch: Partial<GradingSettings>) => void
+  /** Namunaviy natijalar (5–9-sinflar) — tizimni sinab ko'rish uchun */
+  seedDemoGrades: (quarter: Quarter) => number
+  /** Chorak natijalarini tozalash */
+  clearGrades: (quarter: Quarter | null) => void
 
   // Sinf rahbari va metodik kun
   setHomeroom: (classId: string, teacherId: string | null) => void
@@ -126,11 +170,43 @@ function seed() {
     site: defaultSite(),
     requests: [] as TeacherRequest[],
     users: defaultUsers(),
+    students: defaultStudents(classes),
+    assessments: [] as Assessment[],
   }
 }
 
 /** Yangi yozuv uchun qisqa noyob kalit */
 const uid = (p: string) => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+
+/** Bugungi sana ISO ko'rinishida (YYYY-MM-DD) */
+const todayISO = () => new Date().toISOString().slice(0, 10)
+
+const clamp = (v: number, lo: number, hi: number) =>
+  Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo
+
+/** Sinf ichidagi tartib raqamlarini qayta joylash */
+function renumber(list: Student[]): Student[] {
+  const counters = new Map<string, number>()
+  return [...list]
+    .sort((a, b) => a.classId.localeCompare(b.classId) || a.order - b.order)
+    .map((s) => {
+      const n = (counters.get(s.classId) ?? 0) + 1
+      counters.set(s.classId, n)
+      return s.order === n ? s : { ...s, order: n }
+    })
+}
+
+/** BSB tartib raqamlarini qayta joylash (o'rtadagisi o'chirilganda) */
+function renumberWorks(list: Assessment[]): Assessment[] {
+  const counters = new Map<string, number>()
+  return list.map((a) => {
+    if (a.kind !== 'bsb') return a
+    const k = `${a.classId}|${a.subjectId}|${a.quarter}`
+    const n = (counters.get(k) ?? 0) + 1
+    counters.set(k, n)
+    return a.order === n ? a : { ...a, order: n, title: a.title.replace(/^\d+-bo/, `${n}-bo`) }
+  })
+}
 
 /** Ro'yxatga qo'shish yoki mavjudini almashtirish */
 function upsert<T extends { id: string }>(list: T[], item: T): T[] {
@@ -194,6 +270,8 @@ export const useStore = create<State>()(
             teachers,
             overrides: { ...s.overrides, byClass },
             lockedUnitIds: s.lockedUnitIds.filter((u) => !u.startsWith(`${id}#`)),
+            students: s.students.filter((st) => st.classId !== id),
+            assessments: s.assessments.filter((a) => a.classId !== id),
             ...stale(),
           }
         }),
@@ -226,6 +304,8 @@ export const useStore = create<State>()(
               t.homeroomClassId && ids.has(t.homeroomClassId) ? { ...t, homeroomClassId: undefined } : t,
             ),
             lockedUnitIds: s.lockedUnitIds.filter((u) => !ids.has(u.split('#')[0])),
+            students: s.students.filter((st) => !ids.has(st.classId)),
+            assessments: s.assessments.filter((a) => !ids.has(a.classId)),
             ...stale(),
           }
         }),
@@ -437,8 +517,8 @@ export const useStore = create<State>()(
           return { site: { ...st.site, staff: list.map((x, k) => ({ ...x, order: k + 1 })) } }
         }),
 
-      upsertStudent: (x) => set((st) => ({ site: { ...st.site, students: upsert(st.site.students, x) } })),
-      removeStudent: (id) =>
+      upsertHighlight: (x) => set((st) => ({ site: { ...st.site, students: upsert(st.site.students, x) } })),
+      removeHighlight: (id) =>
         set((st) => ({ site: { ...st.site, students: st.site.students.filter((s) => s.id !== id) } })),
 
       upsertAlumnus: (x) => set((st) => ({ site: { ...st.site, alumni: upsert(st.site.alumni, x) } })),
@@ -474,6 +554,15 @@ export const useStore = create<State>()(
               teachers: st.teachers.map((t) => (t.id === req.teacherId ? { ...t, ...req.proposed } : t)),
             }
           }
+          // Baholash so'rovi qabul qilinsa — ish qayta tahrirlash uchun ochiladi
+          if (status === 'qabul' && req.kind === 'baho' && req.assessmentId) {
+            return {
+              requests,
+              assessments: st.assessments.map((a) =>
+                a.id === req.assessmentId ? { ...a, submittedAt: undefined, updatedAt: Date.now() } : a,
+              ),
+            }
+          }
           return { requests }
         }),
 
@@ -482,6 +571,245 @@ export const useStore = create<State>()(
       /* ── Ma'muriyat foydalanuvchilari ────────────────────────────── */
       upsertUser: (u) => set((st) => ({ users: upsert(st.users, u) })),
       removeUser: (id) => set((st) => ({ users: st.users.filter((u) => u.id !== id) })),
+
+      /* ── O'quvchilar ─────────────────────────────────────────────── */
+      addStudent: (classId, fullName) =>
+        set((st) => {
+          const name = fullName.trim()
+          if (!name) return st
+          const order = st.students.filter((s) => s.classId === classId).length + 1
+          return {
+            students: [...st.students, { id: uid(`st-${classId}`), classId, fullName: name, order, active: true }],
+          }
+        }),
+
+      updateStudent: (id, patch) =>
+        set((st) => ({ students: st.students.map((s) => (s.id === id ? { ...s, ...patch } : s)) })),
+
+      removeStudent: (id) =>
+        set((st) => ({
+          students: renumber(st.students.filter((s) => s.id !== id)),
+          // Ballari ham o'chadi — o'rtachani buzmasligi uchun
+          assessments: st.assessments.map((a) => {
+            if (a.scores[id] === undefined && !a.absent.includes(id)) return a
+            const scores = { ...a.scores }
+            delete scores[id]
+            return { ...a, scores, absent: a.absent.filter((x) => x !== id) }
+          }),
+        })),
+
+      setRoster: (classId, names) =>
+        set((st) => {
+          const clean = names.map((n) => n.trim()).filter(Boolean)
+          const old = st.students.filter((s) => s.classId === classId)
+          // Bir xil ismli o'quvchining ballari saqlanib qolishi uchun id ni qayta ishlatamiz
+          const byName = new Map(old.map((s) => [s.fullName.toLowerCase(), s]))
+          const next: Student[] = clean.map((fullName, i) => {
+            const prev = byName.get(fullName.toLowerCase())
+            byName.delete(fullName.toLowerCase())
+            return prev
+              ? { ...prev, fullName, order: i + 1, active: true }
+              : { id: uid(`st-${classId}`), classId, fullName, order: i + 1, active: true }
+          })
+          return { students: [...st.students.filter((s) => s.classId !== classId), ...next] }
+        }),
+
+      fillMissingRosters: () =>
+        set((st) => {
+          const has = new Set(st.students.map((s) => s.classId))
+          const missing = st.classes.filter((c) => !has.has(c.id))
+          if (missing.length === 0) return st
+          return { students: [...st.students, ...defaultStudents(missing)] }
+        }),
+
+      /* ── BSB va ChSB ─────────────────────────────────────────────── */
+      createAssessment: (a) => {
+        const id = uid('sb')
+        set((st) => {
+          const g = st.settings.grading
+          const same = st.assessments.filter(
+            (x) =>
+              x.classId === a.classId &&
+              x.subjectId === a.subjectId &&
+              x.quarter === a.quarter &&
+              x.kind === a.kind,
+          )
+          const order = a.kind === 'chsb' ? 0 : same.length + 1
+          const work: Assessment = {
+            id,
+            classId: a.classId,
+            subjectId: a.subjectId,
+            teacherId: a.teacherId,
+            quarter: a.quarter,
+            kind: a.kind,
+            order,
+            title: a.title ?? (a.kind === 'chsb' ? `${a.quarter}-chorak yakuniy ishi` : `${order}-bo'lim`),
+            maxScore: a.maxScore ?? (a.kind === 'chsb' ? g.defaultChsbMax : g.defaultBsbMax),
+            date: a.date ?? todayISO(),
+            scores: {},
+            absent: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          }
+          return { assessments: [...st.assessments, work] }
+        })
+        return id
+      },
+
+      updateAssessment: (id, patch) =>
+        set((st) => ({
+          assessments: st.assessments.map((a) => {
+            if (a.id !== id) return a
+            const next = { ...a, ...patch, updatedAt: Date.now() }
+            // Maksimal ball kamaytirilsa, undan katta ballar chegaraga tushiriladi —
+            // aks holda o'zlashtirish 100% dan oshib ketadi
+            if (next.maxScore !== a.maxScore) {
+              const scores: Record<string, number> = {}
+              for (const [k, v] of Object.entries(next.scores)) scores[k] = Math.min(v, next.maxScore)
+              next.scores = scores
+            }
+            return next
+          }),
+        })),
+
+      removeAssessment: (id) =>
+        set((st) => ({ assessments: renumberWorks(st.assessments.filter((a) => a.id !== id)) })),
+
+      setScore: (id, studentId, value) =>
+        set((st) => ({
+          assessments: st.assessments.map((a) => {
+            if (a.id !== id) return a
+            const scores = { ...a.scores }
+            if (value === null) delete scores[studentId]
+            else scores[studentId] = clamp(value, 0, a.maxScore)
+            return {
+              ...a,
+              scores,
+              // Ball qo'yilsa — «kelmadi» belgisi olib tashlanadi
+              absent: value === null ? a.absent : a.absent.filter((x) => x !== studentId),
+              updatedAt: Date.now(),
+            }
+          }),
+        })),
+
+      setScores: (id, scores, absent) =>
+        set((st) => ({
+          assessments: st.assessments.map((a) => {
+            if (a.id !== id) return a
+            const clean: Record<string, number> = {}
+            for (const [k, v] of Object.entries(scores)) clean[k] = clamp(v, 0, a.maxScore)
+            return { ...a, scores: clean, absent: absent ?? a.absent, updatedAt: Date.now() }
+          }),
+        })),
+
+      toggleAbsent: (id, studentId) =>
+        set((st) => ({
+          assessments: st.assessments.map((a) => {
+            if (a.id !== id) return a
+            const on = a.absent.includes(studentId)
+            const scores = { ...a.scores }
+            if (!on) delete scores[studentId]
+            return {
+              ...a,
+              scores,
+              absent: on ? a.absent.filter((x) => x !== studentId) : [...a.absent, studentId],
+              updatedAt: Date.now(),
+            }
+          }),
+        })),
+
+      submitAssessment: (id) =>
+        set((st) => ({
+          assessments: st.assessments.map((a) =>
+            a.id === id ? { ...a, submittedAt: Date.now(), updatedAt: Date.now() } : a,
+          ),
+        })),
+
+      reopenAssessment: (id) =>
+        set((st) => ({
+          assessments: st.assessments.map((a) =>
+            a.id === id ? { ...a, submittedAt: undefined, updatedAt: Date.now() } : a,
+          ),
+        })),
+
+      setGrading: (patch) =>
+        set((st) => ({ settings: { ...st.settings, grading: { ...st.settings.grading, ...patch } } })),
+
+      seedDemoGrades: (quarter) => {
+        let made = 0
+        set((st) => {
+          const g = st.settings.grading
+          const rng = makeRng(4000 + quarter)
+          const rest = st.assessments.filter((a) => a.quarter !== quarter)
+          const fresh: Assessment[] = []
+          const now = Date.now()
+
+          for (const cls of st.classes) {
+            // Namuna 5–9-sinflar uchun — barcha sinflar juda katta hajm beradi
+            if (cls.grade < 5 || cls.grade > 9 || !isGradedGrade(cls.grade, g)) continue
+            const roster = st.students.filter((s) => s.classId === cls.id && s.active)
+            if (roster.length === 0) continue
+            // Har bir o'quvchining «kuchi» — natijalar tabiiy tarqalishi uchun
+            const ability = new Map(roster.map((s) => [s.id, 0.55 + rng() * 0.42]))
+
+            for (const sub of SUBJECTS) {
+              const hours = effectiveHours(cls, sub.id, st.overrides)
+              if (hours < 1) continue
+              const teacherId = st.assignments[asgKey(cls.id, sub.id)]
+              if (!teacherId) continue
+
+              const plan = plannedBsbCount(hours, g)
+              // Har beshinchi sinf-fan ataylab chala qoldiriladi — rahbariyat
+              // «topshirilmaganlar» ro'yxatini ko'rib turishi uchun
+              const lag = rng() < 0.2
+              const bsbCount = lag ? Math.max(1, plan - 1) : plan
+              const withChsb = !lag && rng() > 0.12
+
+              const build = (kind: AssessmentKind, order: number) => {
+                const maxScore = kind === 'chsb' ? g.defaultChsbMax : g.defaultBsbMax
+                const scores: Record<string, number> = {}
+                const absent: string[] = []
+                for (const s of roster) {
+                  if (rng() < 0.02) {
+                    absent.push(s.id)
+                    continue
+                  }
+                  const base = (ability.get(s.id) ?? 0.7) + (rng() - 0.5) * 0.16
+                  scores[s.id] = clamp(Math.round(base * maxScore), 0, maxScore)
+                }
+                fresh.push({
+                  id: `sb-${quarter}-${cls.id}-${sub.id}-${kind}${order}`,
+                  classId: cls.id,
+                  subjectId: sub.id,
+                  teacherId,
+                  quarter,
+                  kind,
+                  order,
+                  title: kind === 'chsb' ? `${quarter}-chorak yakuniy ishi` : `${order}-bo'lim`,
+                  maxScore,
+                  date: todayISO(),
+                  scores,
+                  absent,
+                  submittedAt: rng() < 0.9 ? now : undefined,
+                  createdAt: now,
+                  updatedAt: now,
+                })
+                made++
+              }
+
+              for (let i = 1; i <= bsbCount; i++) build('bsb', i)
+              if (withChsb) build('chsb', 0)
+            }
+          }
+          return { assessments: [...rest, ...fresh] }
+        })
+        return made
+      },
+
+      clearGrades: (quarter) =>
+        set((st) => ({
+          assessments: quarter === null ? [] : st.assessments.filter((a) => a.quarter !== quarter),
+        })),
 
       /* ── Sinf rahbari va metodik kun ─────────────────────────────── */
       setHomeroom: (classId, teacherId) =>
@@ -516,7 +844,7 @@ export const useStore = create<State>()(
     }),
     {
       name: 'dars-jadval-v1',
-      version: 4,
+      version: 5,
       migrate: (persisted: any, version) => {
         const p = { ...(persisted ?? {}) }
         if (version < 2) {
@@ -549,7 +877,13 @@ export const useStore = create<State>()(
             return f ? { ...f, ...t, passportSeries: f.passportSeries, passportNumber: f.passportNumber } : t
           })
         }
+        if (version < 5) {
+          // BSB va ChSB baholash tizimi qo'shildi
+          p.students = p.students ?? defaultStudents(p.classes ?? defaultClasses())
+          p.assessments = p.assessments ?? []
+        }
         p.settings = { ...defaultSettings(), ...(p.settings ?? {}) }
+        p.settings.grading = { ...defaultGrading(), ...(p.settings.grading ?? {}) }
         p.site = { ...defaultSite(), ...(p.site ?? {}) }
         return p
       },

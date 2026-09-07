@@ -7,12 +7,13 @@ import type { ThemeMode } from '../lib/theme'
 import { CATEGORY_LABELS } from '../types'
 import {
   IcoAccount, IcoSchedule, IcoUser, IcoInbox, IcoLogout, IcoSun, IcoMoon, IcoSystem,
-  IcoHome, IcoDashboard,
+  IcoHome, IcoDashboard, IcoGrade,
 } from '../components/icons'
 
 const TABS = [
   { to: '/kabinet', label: 'Bosh sahifa', Icon: IcoDashboard, end: true },
   { to: '/kabinet/jadval', label: 'Dars jadvalim', Icon: IcoSchedule },
+  { to: '/kabinet/baholash', label: 'BSB va ChSB', Icon: IcoGrade },
   { to: '/kabinet/malumot', label: "Ma'lumotlarim", Icon: IcoUser },
   { to: '/kabinet/sorovlar', label: "So'rovlarim", Icon: IcoInbox },
 ]
@@ -107,7 +108,7 @@ export default function CabinetLayout() {
                 to={to}
                 end={end}
                 className={({ isActive }) =>
-                  `flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  `flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
                       : 'text-muted hover:bg-raised hover:text-fg'

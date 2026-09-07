@@ -155,6 +155,8 @@ export interface Settings {
    * 0 = eski jadval hisobga olinmaydi, 200 = faqat juda zarur o'zgarishlar qilinadi.
    */
   stabilityWeight: number
+  /** BSB va ChSB baholash tartibi */
+  grading: GradingSettings
 }
 
 /* ─────────────────── Qo'shimcha shartlar (izohlar) ──────────────────── */
@@ -412,12 +414,13 @@ export interface SiteContent {
 
 /* ───────────────────── O'qituvchi so'rovlari (arizalar) ───────────────── */
 
-export type RequestKind = 'jadval' | 'profil' | 'yuklama' | 'boshqa'
+export type RequestKind = 'jadval' | 'profil' | 'yuklama' | 'baho' | 'boshqa'
 
 export const REQUEST_KIND_LABELS: Record<RequestKind, string> = {
   jadval: "Dars jadvalini o'zgartirish",
   profil: "Shaxsiy ma'lumotni o'zgartirish",
   yuklama: "Dars yuklamasini o'zgartirish",
+  baho: "Topshirilgan baholashni ochish",
   boshqa: 'Boshqa murojaat',
 }
 
@@ -442,6 +445,11 @@ export interface TeacherRequest {
    * Qabul qilinganda o'qituvchi kartochkasiga ko'chiriladi.
    */
   proposed?: Partial<Teacher>
+  /**
+   * «Baho» turidagi so'rov uchun — qaysi baholash ishi haqida.
+   * Qabul qilinganda o'sha ish qayta tahrirlash uchun ochiladi.
+   */
+  assessmentId?: string
   status: RequestStatus
   createdAt: number
   reviewedAt?: number
@@ -449,4 +457,109 @@ export interface TeacherRequest {
   reviewedBy?: string
   /** Ma'muriyat javobi */
   response?: string
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BSB va ChSB — summativ baholash tizimi
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** O'quv choragi */
+export type Quarter = 1 | 2 | 3 | 4
+
+export const QUARTERS: Quarter[] = [1, 2, 3, 4]
+
+export const QUARTER_LABELS: Record<Quarter, string> = {
+  1: 'I chorak',
+  2: 'II chorak',
+  3: 'III chorak',
+  4: 'IV chorak',
+}
+
+/**
+ * Summativ baholash turi.
+ *  - BSB  — bo'lim (bob) bo'yicha summativ baholash, har bo'lim tugagach
+ *  - ChSB — chorak bo'yicha summativ baholash, chorakda bir marta
+ */
+export type AssessmentKind = 'bsb' | 'chsb'
+
+export const ASSESSMENT_LABELS: Record<AssessmentKind, string> = {
+  bsb: "Bo'lim bo'yicha summativ baholash",
+  chsb: "Chorak bo'yicha summativ baholash",
+}
+
+export const ASSESSMENT_SHORT: Record<AssessmentKind, string> = { bsb: 'BSB', chsb: 'ChSB' }
+
+/** 5 ballik baho */
+export type Mark = 2 | 3 | 4 | 5
+
+export const MARKS: Mark[] = [5, 4, 3, 2]
+
+/** Sinf jurnalidagi o'quvchi */
+export interface Student {
+  id: string
+  classId: string
+  fullName: string
+  /** Jurnaldagi tartib raqami */
+  order: number
+  /** Boshqa maktabga ketgan o'quvchi ro'yxatda qoladi, lekin hisobga olinmaydi */
+  active: boolean
+  /** Qo'shimcha izoh (ma'muriyat uchun) */
+  note?: string
+}
+
+/**
+ * Bitta summativ baholash ishi — bitta sinfda, bitta fandan, bitta chorakda.
+ * Ishni faqat shu sinf-fanga biriktirilgan o'qituvchi kiritadi.
+ */
+export interface Assessment {
+  id: string
+  classId: string
+  subjectId: string
+  /** Ishni kiritgan o'qituvchi */
+  teacherId: string
+  quarter: Quarter
+  kind: AssessmentKind
+  /** BSB tartib raqami (1, 2, 3 …). ChSB uchun 0 */
+  order: number
+  /** Bo'lim yoki ish nomi */
+  title: string
+  /** Ish uchun maksimal ball */
+  maxScore: number
+  /** O'tkazilgan sana (YYYY-MM-DD) */
+  date: string
+  /** studentId -> olingan ball */
+  scores: Record<string, number>
+  /** Ishda qatnashmagan o'quvchilar — o'rtachaga qo'shilmaydi */
+  absent: string[]
+  /** Rahbariyatga topshirilgan vaqt. Bo'sh bo'lsa — qoralama */
+  submittedAt?: number
+  createdAt: number
+  updatedAt: number
+}
+
+/**
+ * Baholash tartibi sozlamalari.
+ * Vazirlik nizomi o'zgarsa — kodni emas, shu qiymatlarni o'zgartirish kifoya.
+ */
+export interface GradingSettings {
+  /** Chorak natijasida BSB larning ulushi (0–1) */
+  bsbWeight: number
+  /** ChSB ning ulushi (0–1) */
+  chsbWeight: number
+  /** «5» baho uchun eng kam foiz */
+  mark5: number
+  /** «4» baho uchun eng kam foiz */
+  mark4: number
+  /** «3» baho uchun eng kam foiz */
+  mark3: number
+  /** Chorakdagi BSB soni: [haftasiga 1 soat, 2 soat, 3 va undan ko'p] */
+  bsbPlan: [number, number, number]
+  /** Yangi BSB uchun standart maksimal ball */
+  defaultBsbMax: number
+  /** Yangi ChSB uchun standart maksimal ball */
+  defaultChsbMax: number
+  /** Joriy chorak — kabinet va hisobotlar shu chorakdan boshlanadi */
+  currentQuarter: Quarter
+  /** Baholanmaydigan sinf darajalari (odatda 1-sinf) */
+  ungradedGrades: number[]
 }

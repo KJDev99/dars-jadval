@@ -1,6 +1,8 @@
 import type {
+  GradingSettings,
   SchoolClass,
   Settings,
+  Student,
   Teacher,
   TeacherCategory,
 } from "../types";
@@ -451,5 +453,74 @@ export function defaultSettings(): Settings {
     theme: "system",
     pedagogicalDays: { ...DEFAULT_PEDAGOGICAL_DAYS },
     stabilityWeight: 40,
+    grading: defaultGrading(),
   };
+}
+
+/**
+ * BSB va ChSB baholash tartibi — boshlang'ich qiymatlar.
+ *
+ * Og'irliklar va foiz chegaralari Vazirlik nizomiga qarab o'zgarib turadi,
+ * shuning uchun ular sozlamalarda saqlanadi va «Baholash» bo'limidan
+ * o'zgartiriladi. Bu yerdagilar — eng keng tarqalgan variant.
+ */
+export function defaultGrading(): GradingSettings {
+  return {
+    bsbWeight: 0.5,
+    chsbWeight: 0.5,
+    mark5: 86,
+    mark4: 71,
+    mark3: 56,
+    // Haftasiga 1 soat — 1 ta BSB, 2 soat — 2 ta, 3 va undan ko'p — 3 ta
+    bsbPlan: [1, 2, 3],
+    defaultBsbMax: 10,
+    defaultChsbMax: 20,
+    currentQuarter: 1,
+    // 1-sinf o'quvchilari baholanmaydi
+    ungradedGrades: [1],
+  };
+}
+
+/**
+ * Sinf jurnallari uchun o'quvchilar ro'yxati.
+ * Har bir sinfda `studentsCount` ta o'quvchi, ismlar deterministik —
+ * bir xil urug'dan doim bir xil ro'yxat chiqadi.
+ */
+export function defaultStudents(classes: SchoolClass[]): Student[] {
+  const rng = makeRng(20260901);
+  const out: Student[] = [];
+  for (const cls of classes) {
+    const count = cls.studentsCount ?? 26;
+    const used = new Set<string>();
+    let order = 0;
+    let guard = 0;
+    while (order < count && guard < count * 40) {
+      guard++;
+      const girl = rng() < 0.49;
+      const ism = girl
+        ? ISM_AYOL[Math.floor(rng() * ISM_AYOL.length)]
+        : ISM_ERKAK[Math.floor(rng() * ISM_ERKAK.length)];
+      const familiya = FAMILIYA[Math.floor(rng() * FAMILIYA.length)];
+      const full = `${familiya} ${ism}`;
+      if (used.has(full)) continue;
+      used.add(full);
+      order++;
+      out.push({
+        id: `st-${cls.id}-${order}`,
+        classId: cls.id,
+        fullName: full,
+        order,
+        active: true,
+      });
+    }
+    // Ro'yxat alifbo tartibida — sinf jurnalidagidek
+    const slice = out.slice(out.length - order);
+    slice.sort((a, b) => a.fullName.localeCompare(b.fullName, "uz"));
+    slice.forEach((st, i) => {
+      st.order = i + 1;
+      st.id = `st-${cls.id}-${i + 1}`;
+    });
+    out.splice(out.length - order, order, ...slice);
+  }
+  return out;
 }

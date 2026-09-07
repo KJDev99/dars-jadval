@@ -352,7 +352,7 @@ const blankStudent = (): StudentHighlight => ({
 
 function StudentsTab() {
   const { students } = useStore((s) => s.site)
-  const { upsertStudent, removeStudent, classes } = useStore()
+  const { upsertHighlight, removeHighlight, classes } = useStore()
   const [edit, setEdit] = useState<StudentHighlight | null>(null)
 
   const list = [...students].sort((a, b) => b.year - a.year || a.fullName.localeCompare(b.fullName))
@@ -385,7 +385,7 @@ function StudentsTab() {
               <div className="flex shrink-0 flex-col gap-1">
                 <button className="btn-icon" onClick={() => setEdit(s)}><IcoEdit className="h-3.5 w-3.5" /></button>
                 <button className="btn-icon hover:bg-rose-500/10 hover:text-rose-600"
-                  onClick={() => { if (confirm("O'chirilsinmi?")) removeStudent(s.id) }}>
+                  onClick={() => { if (confirm("O'chirilsinmi?")) removeHighlight(s.id) }}>
                   <IcoTrash className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -439,7 +439,7 @@ function StudentsTab() {
             <div className="flex justify-end gap-2 border-t border-line pt-4">
               <button className="btn-ghost" onClick={() => setEdit(null)}>Bekor qilish</button>
               <button className="btn-primary" disabled={!edit.fullName.trim() || !edit.classId}
-                onClick={() => { upsertStudent(edit); setEdit(null) }}>
+                onClick={() => { upsertHighlight(edit); setEdit(null) }}>
                 <IcoOk className="h-4 w-4" /> Saqlash
               </button>
             </div>

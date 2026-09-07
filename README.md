@@ -23,6 +23,69 @@ tanlanadi (yorug' / qorong'i / tizim mavzusi). Tanlov saqlanadi.
 
 Ma'lumotlar brauzerning `localStorage` xotirasida saqlanadi — server yoki baza talab qilinmaydi.
 
+## Ilova sifatida o'rnatish (Android va Windows)
+
+Loyiha **PWA** qilib yig'ilgan: brauzerdan bir marta o'rnatilsa, telefon bosh
+ekranida yoki Windows ish stolida **ikonka** paydo bo'ladi. Ikonkani bosish
+ilovani alohida oynada ochadi — brauzer manzil qatorisiz, xuddi oddiy dastur kabi.
+Internetsiz ham ochiladi (ma'lumot qurilmaning o'zida saqlanadi).
+
+| Qurilma | Qanday o'rnatiladi |
+|---|---|
+| **Android** (Chrome, Edge, Samsung Internet) | Saytga kiring → pastda chiqadigan **«O'rnatish»** taklifini bosing. Yoki menyu ⋮ → *Ilovani o'rnatish* |
+| **Windows** (Chrome, Edge) | Manzil qatorining o'ng chekkasidagi **⊕** belgisini bosing, yoki menyu → *Ilovalar → Shu saytni ilova sifatida o'rnatish*. Ish stoli va «Пуск» menyusiga yorliq qo'shiladi |
+| **macOS** (Chrome, Edge, Safari 17+) | Xuddi Windowsdagidek; Safari da *File → Add to Dock* |
+| **iPhone / iPad** (faqat Safari) | **Ulashish** → *Bosh ekranga qo'shish* → **Qo'shish**. Ilovada tugma bosilsa shu yo'riqnoma chiqadi |
+
+Saytning yuqori qismida **«Ilovani o'rnatish»** tugmasi bor, birinchi tashrifda
+esa pastki burchakda taklif chiqadi (bir marta yopilsa, boshqa ko'rsatilmaydi).
+Ilova allaqachon o'rnatilgan bo'lsa, ikkalasi ham ko'rinmaydi.
+
+Ikonkani bosib turilsa **tez havolalar** chiqadi: *Jadval*, *Kabinet*, *Boshqaruv*.
+
+### Muhim shart: HTTPS
+
+Brauzer ilovani faqat **`https://…`** yoki **`localhost`** manzilidan o'rnatadi.
+
+- **Windowsda hozir sinab ko'rish:** `npm run build && npm run preview` →
+  `http://localhost:4180` ni oching va o'rnating. Ammo bunday yorliq faqat
+  `npm run preview` ishlab turganda ochiladi.
+- **Telefonga o'rnatish uchun** sayt internetga qo'yilishi kerak. Yig'ilgan
+  `dist/` papkasi statik — hech qanday server kodi kerak emas:
+
+  | Xizmat | Qadamlar |
+  |---|---|
+  | **Netlify Drop** | [app.netlify.com/drop](https://app.netlify.com/drop) ga `dist/` papkasini sudrab tashlang — darhol HTTPS manzil beradi |
+  | **Vercel** | `npx vercel deploy --prod dist` |
+  | **GitHub Pages** | `BASE_PATH=/<repo-nomi>/ npm run build`, so'ng `dist/` ni `gh-pages` tarmog'iga joylang |
+
+  Ichki papkaga (`example.com/dars-jadval/`) qo'yilsa `BASE_PATH` ni ko'rsatish
+  kifoya — manifest, ikonka va service worker havolalari nisbiy yozilgan.
+
+### Ikonkalar
+
+`public/` dagi ikonkalar qo'lda chizilmagan — `npm run icons` buyrug'i ularni
+kod bilan chizadi (tashqi kutubxonasiz, Node ning `zlib` moduli orqali PNG ga
+o'raladi). Rangni yoki shaklni o'zgartirish uchun `scripts/make-icons.mjs`
+tahrirlanadi va buyruq qayta ishga tushiriladi.
+
+| Fayl | Vazifasi |
+|---|---|
+| `icon-192.png`, `icon-512.png` | Asosiy ikonka (yumaloq burchakli) |
+| `icon-maskable-*.png` | Android o'z shakliga kesib qo'yadigan variant |
+| `apple-touch-icon.png` | iPhone bosh ekrani |
+| `icon.svg`, `favicon.png` | Brauzer yorlig'i |
+
+### Sinov (`npm run bench:pwa`)
+
+```
+✓ manifest to'g'ri (nom, start_url, standalone, ranglar, tez havolalar)
+✓ 192 va 512 px ikonkalar, maskable variantlari, apple-touch-icon 180×180
+✓ service worker: fetch/install/activate, eski keshlarni tozalash
+✓ index.html: manifest havolasi, theme-color, iOS meta teglari
+✓ ilova kodi: SW ro'yxatdan o'tadi, o'rnatish taklifi ushlanadi
+```
+
 ## Tizimning uch qismi
 
 | Qism | Manzil | Kim kiradi |
@@ -94,6 +157,7 @@ O'qituvchi pasport seriyasi (2 harf) va raqami (7 raqam) bilan kiradi.
 |---|---|
 | Bosh sahifa | Bugungi darslar, haftalik yuklama va stavka, oynalar, shaxsiy shartlar |
 | Dars jadvalim | To'liq haftalik jadval, kunlar kesimidagi yig'indi, chop etish |
+| BSB va ChSB | O'z sinf-fanlari bo'yicha summativ baholash jurnali, Excel bilan yuklash, topshirish |
 | Ma'lumotlarim | O'zgartirish taklif qilinadigan maydonlar + ma'muriyat belgilaydigan maydonlar |
 | So'rovlarim | Yangi ariza yuborish va yuborilganlarining holati |
 
@@ -105,12 +169,112 @@ ko'chadi; rad etsa — hech narsa o'zgarmaydi.
 Jadval yoki yuklama bo'yicha so'rovda aniq darsni tanlash mumkin (kun, soat, sinf, fan) —
 u so'rov matniga qo'shiladi.
 
+## BSB va ChSB — summativ baholash
+
+Baholash ma'lumotini **o'qituvchining o'zi** kiritadi: tarifikatsiyada unga biriktirilgan
+sinf-fanlar ro'yxati kabinetda avtomatik chiqadi, boshqasiga tega olmaydi. Kiritilgan
+natijalar bir zumda yig'ilib, rahbariyat paneliga jadval ko'rinishida boradi.
+
+### Tartib
+
+| Tur | Qachon | Nechta |
+|---|---|---|
+| **BSB** — bo'lim bo'yicha summativ baholash | Har bo'lim tugagach | Haftalik soatga qarab: 1 soat — 1 ta, 2 soat — 2 ta, 3+ soat — 3 ta |
+| **ChSB** — chorak bo'yicha summativ baholash | Chorak oxirida | Chorakda 1 ta |
+
+### Hisoblash
+
+```
+BSB foizi  = (barcha BSB dan olingan ball) / (maksimal ball) × 100
+ChSB foizi = (ChSB dan olingan ball) / (maksimal ball) × 100
+
+Chorak foizi = BSB foizi × bsbWeight + ChSB foizi × chsbWeight
+```
+
+Ish turlaridan biri hali o'tkazilmagan bo'lsa, og'irliklar mavjud qismga qayta
+taqsimlanadi — chala ma'lumot ham ko'rsatiladi, lekin holat «chala» deb belgilanadi.
+
+Foizdan bahoga: **«5»** — 86% dan, **«4»** — 71% dan, **«3»** — 56% dan, undan pasti **«2»**.
+
+Yig'ma ko'rsatkichlar: **o'rtacha ball**, **sifat** (4 va 5 baholilar ulushi) va
+**o'zlashtirish** (3 va undan yuqori baholilar ulushi).
+
+> Og'irliklar, foiz chegaralari, BSB rejasi va standart maksimal ballar
+> `settings.grading` da saqlanadi va «BSB va ChSB → Tartib» oynasidan o'zgartiriladi —
+> Vazirlik nizomi o'zgarsa kodga tegish shart emas.
+
+### Ish oqimi
+
+1. O'qituvchi kabinetda sinf-fanni tanlaydi, **BSB** yoki **ChSB** qo'shadi (nom, maksimal
+   ball, sana).
+2. Ballarni jadvalga qo'lda kiritadi **yoki** Excel shablonini yuklab olib, to'ldirib
+   qaytadan yuklaydi. Kelmagan o'quvchi «-» bilan belgilanadi va o'rtachaga qo'shilmaydi.
+3. **Topshiradi** — shundan keyin ish qulflanadi va rahbariyat hisobotiga tushadi.
+   Tuzatish kerak bo'lsa o'qituvchi **so'rov yuboradi**; direktor yoki zavuch qabul qilsa,
+   ish qayta ochiladi.
+4. Rahbariyat «BSB va ChSB» bo'limida beshta kesimda ko'radi: **o'qituvchilar**, **sinflar**,
+   **fanlar**, **sinf-fan** va **o'quvchilar**. Yuqorida topshirilmagan sinf-fanlar ro'yxati
+   turadi.
+
+### Ma'lumotlarning holati
+
+| Holat | Ma'nosi |
+|---|---|
+| Boshlanmagan | Chorak uchun hech qanday ish kiritilmagan |
+| Qoralama | Ish bor, lekin topshirilmagan — hisobotga kirmaydi |
+| Chala | Bir qismi topshirilgan, reja to'lmagan |
+| Tayyor | Rejadagi barcha BSB va ChSB topshirilgan |
+
+### Excel
+
+- **Jurnal shabloni** — bitta sinf-fan uchun: qatorlar o'quvchilar, ustunlar `1-BSB`,
+  `2-BSB`, `ChSB`. O'quvchilar ID yoki F.I.Sh. bo'yicha moslashtiriladi, shuning uchun
+  qo'lda tuzilgan fayl ham o'qiladi (ustun tartibi va vergulli sonlar muhim emas).
+- **Chorak hisoboti** — 7 varaq: Umumiy, Sinflar, Fanlar, O'qituvchilar, Sinf-fan,
+  O'quvchilar, Topshirilmagan.
+- **Sinf varag'i** — «o'quvchi × fan» baho matritsasi, pastida fan o'rtachalari.
+
+### Sinov (`npm run bench:grades`)
+
+```
+sinflar: 30, o'quvchilar: 855
+baholash ishlari: 610 ta
+jurnal yig'ildi: 429 ta sinf-fan, 6801 ta baho (4.6 ms)
+
+✓ qo'lda hisoblangan foiz va baho jurnal bilan bir xil
+✓ ChSB bo'lmaganda og'irliklar qayta taqsimlanadi
+✓ kelmagan va ball qo'yilmagan o'quvchilar o'rtachadan chetda
+✓ sinf, fan, o'qituvchi va maktab yig'indilari mos
+✓ Excel: yuklab olish → qayta yuklash — 0 ta farq
+✓ qo'lda tuzilgan fayl ham to'liq o'qildi
+✓ hisobotning 7 varag'i, 568 KB
+```
+
+### Ish oqimi sinovi (`npm run bench:flow`)
+
+Do'kondagi amallar zanjiri — 60 dan ortiq tekshiruv:
+
+```
+✓ o'qituvchiga faqat o'z sinf-fanlari ko'rinadi
+✓ BSB tartib raqamlari o'rtadagisi o'chirilganda qayta joylanadi
+✓ maksimal balldan oshgan / kamaytirilgan ballar chegaraga tushiriladi
+✓ qoralama rahbariyat hisobotiga kirmaydi, kabinetda ko'rinadi
+✓ reja to'lganda holat «tayyor» bo'ladi
+✓ so'rov qabul qilinsa ish qayta ochiladi, rad etilsa — yo'q
+✓ o'quvchi o'chirilsa ballari ham tozalanadi, tartib raqamlari qayta joylanadi
+✓ ro'yxat almashtirilganda mos ismlarning ballari saqlanadi
+✓ sinf o'chirilsa o'quvchilari va ishlari birga o'chadi
+✓ choraklar bir-biriga aralashmaydi
+✓ eski (4-versiya) bazadan ko'chish ma'lumotni buzmaydi
+```
+
 ## Rollar va ruxsatlar
 
 | Bo'lim | Direktor | Zavuch | O'qituvchi |
 |---|---|---|---|
 | Sinflar, o'qituvchilar, o'quv reja, tarifikatsiya, Excel | ✓ | ✓ | — |
 | Shartlar, jadval yaratish, dars jadvali, tekshiruv | ✓ | ✓ | — |
+| BSB va ChSB natijalari, o'quvchilar ro'yxati | ✓ | ✓ | o'ziniki |
 | O'qituvchi so'rovlari | ✓ | ✓ | o'ziniki |
 | Rasmiy sayt kontenti | ✓ | — | — |
 | Foydalanuvchilar va pasport ma'lumotlari | ✓ | — | — |
@@ -164,6 +328,8 @@ Barcha qator va ustun yig'indilari rasmiy hujjat bilan solishtirib tekshirilgan
 | Jadval yaratish | Cheklovlarni sozlash, yangidan yaratish yoki minimal o'zgarish bilan qayta hisoblash |
 | Dars jadvali | Sinf / o'qituvchi / umumiy ko'rinish, qo'lda tahrirlash, qulflash, chop etish, CSV |
 | Tekshiruv | Tuzilgan jadvalning barcha qoidalarga mosligini mustaqil tekshirish |
+| BSB va ChSB | Chorak natijalari — o'qituvchi, sinf, fan va o'quvchi kesimida; Excel hisobot |
+| O'quvchilar | Sinf jurnallari — ro'yxatni kiritish, tahrirlash, chiqib ketganlarni belgilash |
 | O'qituvchi so'rovlari | Kabinetdan kelgan arizalar: qabul qilish, rad etish, javob yozish |
 | Rasmiy sayt | Sayt kontenti — maktab ma'lumoti, rahbariyat, o'quvchilar, bitiruvchilar, yangiliklar |
 | Foydalanuvchilar | Ma'muriyat hisoblari va o'qituvchilarning pasport ma'lumotlari |
@@ -467,6 +633,8 @@ src/
   components/icons.ts   — barcha ikonkalar (react-icons / Lucide)
   components/Select.tsx — maxsus tanlagich (qidiruv, klaviatura, guruhlash)
   lib/excel.ts          — Excel eksport/import (SheetJS, talab bo'lganda yuklanadi)
+  lib/grading.ts        — BSB/ChSB hisob-kitobi (foiz, baho, sifat, o'zlashtirish)
+  lib/grades-excel.ts   — baholash jurnali va chorak hisobotining Excel qismi
   lib/view.ts           — jadvalni ko'rsatish uchun indeks
   lib/export.ts         — CSV / JSON eksport
   scheduler/assign.ts   — tarifikatsiya + darslarni o'tkazish
@@ -481,13 +649,20 @@ src/
   components/Photo.tsx  — rasm va o'rin egallagich, rasm yuklash
   lib/image.ts          — rasmni kichraytirish, bosh harflar
   data/site-seed.ts     — sayt kontenti va hisoblarning boshlang'ich holati
+  lib/pwa.ts            — ilovani o'rnatish va service worker
+  components/InstallApp.tsx — «Ilovani o'rnatish» tugmasi va taklifi
   authStore.ts          — kirish va ruxsatlar (zustand + sessionStorage)
   store.ts              — holat (zustand + localStorage)
+public/                 — manifest, service worker va ikonkalar
 scripts/
   bench.ts              — noldan tuzishni sinash
   bench-incremental.ts  — o'zgartirish ssenariylarini sinash
   bench-category.ts     — toifa bo'yicha taqsimotni sinash
   bench-excel.ts        — Excel zanjirini sinash
+  bench-grades.ts       — BSB/ChSB hisob-kitobi va Excel jurnalini sinash
+  bench-flow.ts         — BSB/ChSB ish oqimi: yaratish → ball → topshirish → so'rov
+  bench-pwa.mjs         — ilova o'rnatiladigan holatda ekanini tekshirish
+  make-icons.mjs        — ilova ikonkalarini chizish (PNG + SVG)
   bench-site.ts         — sayt kontenti, kirish va so'rovlarni sinash
   smoke.tsx             — barcha sahifalarni serverda chizib tekshirish
   bench-seeds.ts        — ko'p urug'li barqarorlik sinovi

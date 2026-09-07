@@ -1,6 +1,6 @@
 import {
   IcoDashboard, IcoClasses, IcoTeachers, IcoCurriculum, IcoTarif, IcoRules, IcoGenerate,
-  IcoSchedule, IcoReport, IcoExcel, IcoInbox, IcoGlobe, IcoUserCog,
+  IcoSchedule, IcoReport, IcoExcel, IcoInbox, IcoGlobe, IcoUserCog, IcoGrade, IcoStudents,
 } from '../components/icons'
 
 export interface AdminNavItem {
@@ -26,6 +26,8 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { id: 'generate', path: 'yaratish', label: 'Jadval yaratish', Icon: IcoGenerate, group: "O'quv jarayoni" },
   { id: 'schedule', path: 'jadval', label: 'Dars jadvali', Icon: IcoSchedule, group: "O'quv jarayoni" },
   { id: 'report', path: 'tekshiruv', label: 'Tekshiruv', Icon: IcoReport, group: "O'quv jarayoni" },
+  { id: 'grades', path: 'baholash', label: 'BSB va ChSB', Icon: IcoGrade, group: "O'quv jarayoni" },
+  { id: 'students', path: 'oquvchilar', label: "O'quvchilar", Icon: IcoStudents, group: "Ma'lumotlar" },
   { id: 'requests', path: 'sorovlar', label: "O'qituvchi so'rovlari", Icon: IcoInbox, group: 'Boshqaruv' },
   { id: 'site', path: 'sayt', label: 'Rasmiy sayt', Icon: IcoGlobe, group: 'Boshqaruv', directorOnly: true },
   { id: 'users', path: 'foydalanuvchilar', label: 'Foydalanuvchilar', Icon: IcoUserCog, group: 'Boshqaruv', directorOnly: true },
