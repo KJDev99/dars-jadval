@@ -2,8 +2,7 @@ node_modules
 dist
 *.local
 .DS_Store
-
-# esbuild yig'adigan vaqtinchalik sinov to'plamlari
-scripts/.bench-*.mjs
-scripts/.bench.mjs
-scripts/.smoke*.mjs
+.env
+.env.*
+!.env.example
+tsconfig.tsbuildinfo
