@@ -99,7 +99,8 @@ select name, is_active from academic_years;
 
 Natija: `fanlar = 17`, `2026-2027 | true`. Shunday bo'lsa — baza tayyor.
 
-> Agar qizil xato chiqsa: xato matnini to'liq nusxa olib menga yuboring.
+> Bu 5 ta fayl PostgreSQL 17 da sinovdan o'tkazilgan (`supabase/tests/`) — xatosiz o'tishi kerak.
+> Baribir qizil xato chiqsa: xato matnini to'liq nusxa olib menga yuboring.
 > Fayllarni qayta ishga tushirish xavfsiz — ular `create ... if not exists` bilan yozilgan.
 
 ---
