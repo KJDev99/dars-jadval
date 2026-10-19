@@ -1,0 +1,34 @@
+# Supabase bepul tarifda proyekt 1 hafta harakatsiz qolsa pauza qiladi.
+# Bu ish haftada bir marta bazaga haqiqiy so'rov yuboradi (keshlanmaydigan).
+#
+# Ishlashi uchun repo sozlamalariga ikki secret qo'shiladi:
+#   Settings → Secrets and variables → Actions
+#     SUPABASE_URL       = https://xxxx.supabase.co
+#     SUPABASE_ANON_KEY  = anon public key
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '17 6 * * 1' # har dushanba 06:17 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bazaga so'rov
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "SUPABASE_URL yoki SUPABASE_ANON_KEY secret qo'shilmagan — o'tkazib yuborildi"
+            exit 0
+          fi
+          code=$(curl -sS -o /dev/null -w '%{http_code}' \
+            "$URL/rest/v1/subjects?select=id&limit=1" \
+            -H "apikey: $KEY" \
+            -H "Authorization: Bearer $KEY" \
+            -H 'Cache-Control: no-cache')
+          echo "HTTP $code"
+          [ "$code" = "200" ]

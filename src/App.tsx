@@ -1,101 +1,110 @@
-import { Suspense, lazy } from 'react'
+import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { useStore } from './store'
-import { useTheme } from './lib/theme'
+import { configured } from './lib/supabase'
+import { useAuth } from './store/auth'
+import Layout from './ui/Layout'
+import { Loading, Page } from './ui/ui'
+import LoginPage from './pages/LoginPage'
+import PendingPage from './pages/PendingPage'
+import ProfilePage from './pages/ProfilePage'
+import AdminUsersPage from './pages/admin/AdminUsersPage'
+import AdminSettingsPage from './pages/admin/AdminSettingsPage'
+import StatsPage from './pages/manager/StatsPage'
+import ClassesPage from './pages/manager/ClassesPage'
+import ClassPage from './pages/manager/ClassPage'
+import ChangesPage from './pages/manager/ChangesPage'
+import JournalPage from './pages/teacher/JournalPage'
+import MyStatsPage from './pages/teacher/MyStatsPage'
 
-import PublicLayout from './site/PublicLayout'
-import HomePage from './site/HomePage'
-import AboutPage from './site/AboutPage'
-import LeadershipPage from './site/LeadershipPage'
-import StaffPage from './site/StaffPage'
-import TeacherPublicPage from './site/TeacherPublicPage'
-import AchievementsPage from './site/AchievementsPage'
-import PublicSchedulePage from './site/PublicSchedulePage'
-import ContactPage from './site/ContactPage'
-
-import RequireAuth from './auth/RequireAuth'
-
-/*
- * Yopiq bo'limlar alohida bo'laklarga ajratiladi — rasmiy saytga kirgan
- * mehmon ma'muriyat paneli va kabinet kodini yuklamaydi.
- */
-const LoginPage = lazy(() => import('./auth/LoginPage'))
-const CabinetLayout = lazy(() => import('./cabinet/CabinetLayout'))
-const CabinetHome = lazy(() => import('./cabinet/CabinetHome'))
-const CabinetSchedule = lazy(() => import('./cabinet/CabinetSchedule'))
-const CabinetGrades = lazy(() => import('./cabinet/CabinetGrades'))
-const CabinetProfile = lazy(() => import('./cabinet/CabinetProfile'))
-const CabinetRequests = lazy(() => import('./cabinet/CabinetRequests'))
-const AdminApp = lazy(() => import('./admin/AdminApp'))
-
-/** Bo'lak yuklanayotgandagi ko'rinish */
-function Loading() {
+function SetupNotice() {
   return (
-    <div className="grid min-h-screen place-items-center bg-canvas">
-      <div className="flex items-center gap-3 text-sm text-muted">
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-indigo-500" />
-        Yuklanmoqda…
+    <Page>
+      <div className="card mx-auto mt-10 max-w-xl p-6">
+        <h1 className="text-lg font-semibold text-fg">Supabase sozlanmagan</h1>
+        <p className="mt-2 text-sm text-muted">
+          Loyiha ildizida <code className="rounded bg-raised px-1">.env</code> fayl yarating va
+          Supabase proyektingiz ma'lumotlarini kiriting:
+        </p>
+        <pre className="mt-3 overflow-x-auto rounded-lg bg-raised p-3 text-xs text-fg-2">
+{`VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOi...`}
+        </pre>
+        <p className="mt-3 text-xs text-faint">
+          Kalitlar: Supabase Dashboard → Project Settings → API. Keyin <code>npm run dev</code> ni
+          qayta ishga tushiring.
+        </p>
       </div>
-    </div>
+    </Page>
   )
 }
 
-/**
- * Ilova uch qismdan iborat:
- *   1. Rasmiy sayt — hamma uchun ochiq
- *   2. Ma'muriyat paneli (/boshqaruv) — login va parol bilan
- *   3. O'qituvchi kabineti (/kabinet) — pasport ma'lumoti bilan
- */
 export default function App() {
-  const theme = useStore((s) => s.settings.theme)
-  useTheme(theme ?? 'system')
+  const { ready, session, profile, init } = useAuth()
+
+  useEffect(() => {
+    void init()
+  }, [init])
+
+  if (!configured) return <SetupNotice />
+  if (!ready) return <Loading />
+
+  // Kirmagan foydalanuvchi
+  if (!session) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    )
+  }
+
+  if (!profile) return <Loading text="Profil yuklanmoqda…" />
+
+  // Admin tasdiqlamagan yoki bloklangan
+  if (profile.status !== 'approved') {
+    return (
+      <Routes>
+        <Route path="*" element={<PendingPage />} />
+      </Routes>
+    )
+  }
+
+  const home =
+    profile.role === 'admin' ? '/admin/users' : profile.role === 'manager' ? '/stats' : '/journal'
 
   return (
-    <Suspense fallback={<Loading />}>
-      <Routes>
-        {/* ── Rasmiy sayt ─────────────────────────────────────────────── */}
-        <Route element={<PublicLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="maktab" element={<AboutPage />} />
-          <Route path="rahbariyat" element={<LeadershipPage />} />
-          <Route path="oqituvchilar" element={<StaffPage />} />
-          <Route path="oqituvchilar/:id" element={<TeacherPublicPage />} />
-          <Route path="yutuqlar" element={<AchievementsPage />} />
-          <Route path="jadval" element={<PublicSchedulePage />} />
-          <Route path="aloqa" element={<ContactPage />} />
-        </Route>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Navigate to={home} replace />} />
+        <Route path="/login" element={<Navigate to={home} replace />} />
+        <Route path="/profile" element={<ProfilePage />} />
 
-        {/* ── Kirish ──────────────────────────────────────────────────── */}
-        <Route path="/kirish" element={<LoginPage />} />
+        {profile.role === 'admin' && (
+          <>
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/settings" element={<AdminSettingsPage />} />
+          </>
+        )}
 
-        {/* ── O'qituvchi kabineti ─────────────────────────────────────── */}
-        <Route
-          path="/kabinet"
-          element={
-            <RequireAuth need="teacher">
-              <CabinetLayout />
-            </RequireAuth>
-          }
-        >
-          <Route index element={<CabinetHome />} />
-          <Route path="jadval" element={<CabinetSchedule />} />
-          <Route path="baholash" element={<CabinetGrades />} />
-          <Route path="malumot" element={<CabinetProfile />} />
-          <Route path="sorovlar" element={<CabinetRequests />} />
-        </Route>
+        {(profile.role === 'manager' || profile.role === 'admin') && (
+          <>
+            <Route path="/stats" element={<StatsPage />} />
+            <Route path="/classes" element={<ClassesPage />} />
+            <Route path="/classes/:classId" element={<ClassPage />} />
+            <Route path="/changes" element={<ChangesPage />} />
+          </>
+        )}
 
-        {/* ── Ma'muriyat paneli ───────────────────────────────────────── */}
-        <Route
-          path="/boshqaruv/*"
-          element={
-            <RequireAuth need="admin">
-              <AdminApp />
-            </RequireAuth>
-          }
-        />
+        {profile.role === 'teacher' && (
+          <>
+            <Route path="/journal" element={<JournalPage />} />
+            <Route path="/journal/:assignmentId" element={<JournalPage />} />
+            <Route path="/my-stats" element={<MyStatsPage />} />
+          </>
+        )}
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+        <Route path="*" element={<Navigate to={home} replace />} />
+      </Route>
+    </Routes>
   )
 }
