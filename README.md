@@ -20,20 +20,35 @@ Texnologiya: React + TypeScript + Vite + Tailwind, backend — **Supabase** (Pos
 Birinchi ro'yxatdan o'tgan foydalanuvchi avtomatik **administrator** bo'ladi va darhol
 tasdiqlanadi. Qolganlarning hammasi `pending` holatda turadi.
 
-## O'sish qoidasi
+## O'sish qoidasi — sinf darajasida
 
-Yangi ishning foizi ikkita qiymatdan kam bo'lmasligi kerak:
+Pasaymasligi kerak bo'lgan narsa — **alohida o'quvchi emas, sinfning o'rtacha foizi**.
+Bitta o'quvchi pasayishi mumkin (kasal bo'lgan, ulgurmagan), lekin sinf o'rtachasi
+hech qachon tushmaydi.
 
-1. o'quvchining shu fandan **oldingi chorakdagi** umumiy foizi;
+Ish (BSB / ChSB / 10 ballik) **to'liq baholab bo'lingach**, sinfning chorakdagi umumiy
+foizi quyidagi ikkitasidan kam bo'lmasligi kerak:
+
+1. shu sinfning **oldingi chorakdagi** umumiy foizi;
 2. shu chorakda **hozirgacha yig'ilgan** umumiy foizi.
 
-O'rtachaga o'zidan katta yoki teng son qo'shilsa o'rtacha pasaymaydi — demak umumiy o'sish
-matematik kafolatlanadi, shuningdek `1+2`, `3+4`, `1+3`, `2+4` chorak o'rtachalari ham o'sadi.
+O'rtachaga o'zidan katta yoki teng qiymat qo'shilsa o'rtacha pasaymaydi — demak har bir
+sinf-fan o'sadi. Har bir sinf o'ssa, **parallel** (masalan barcha 7-sinflar) va butun
+**maktab** ko'rsatkichi ham o'sadi.
 
-Qoida **serverda** (`save_grade`, `save_extra` funksiyalarida) tekshiriladi, `grades` jadvaliga
-to'g'ridan-to'g'ri yozish RLS bilan taqiqlangan — ya'ni qoidani aylanib o'tib bo'lmaydi.
-Qo'lda past baho kiritilsa: baho **saqlanmaydi**, o'qituvchiga minimal ruxsat etilgan ball
-ko'rsatilgan toast chiqadi, urinish esa `blocked_attempts` jadvalida qoladi (menejer ko'radi).
+Amalda qanday ishlaydi:
+
+| Holat | Natija |
+|---|---|
+| Ish hali to'liq baholanmagan | Baholar erkin kiritiladi, cheklov yo'q. Jurnal ustida «sinfga yana N ball kerak» ko'rinib turadi |
+| Oxirgi o'quvchi kiritildi, sinf o'rtachasi yetarli | Saqlanadi ✓ |
+| Oxirgi o'quvchi kiritildi, sinf o'rtachasi tushib ketadi | **Saqlanmaydi**, toast chiqadi: sinf o'rtachasi qancha bo'lgani, kerakli daraja va shu o'quvchiga kamida qancha ball kerakligi |
+| To'liq baholangan ishda bitta o'quvchini pasaytirish | Sinf o'rtachasi darajani ushlab tursa — mumkin; buzsa — saqlanmaydi |
+| «Avtomatik baholash» (ommaviy) | Butun to'plam bir martada tekshiriladi; shart buzilsa hech biri saqlanmaydi |
+
+Qoida **serverda** (`save_grade`, `save_grades`, `save_extra` funksiyalarida) tekshiriladi,
+`grades` jadvaliga to'g'ridan-to'g'ri yozish RLS bilan taqiqlangan — ya'ni qoidani aylanib
+o'tib bo'lmaydi. To'xtatilgan urinishlar `blocked_attempts` jadvalida qoladi (menejer ko'radi).
 
 **Baho 2 kun ichida tahrirlanadi**, keyin qulflanadi (`grading_rules.edit_days`).
 

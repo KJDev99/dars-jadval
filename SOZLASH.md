@@ -230,22 +230,30 @@ Shu ketma-ketlikni bir marta bajarib chiqing — hamma narsa ishlayotganiga isho
 ### 8.4. Baholash (o'qituvchi oynasida)
 1. **Jurnal** → sinfni tanlang → **Jurnalni ochish**.
 2. **BSB qo'shish** → maksimal ball `10` → **Qo'shish**.
-3. **Avtomatik baholash** → hamma o'quvchiga ball qo'yiladi.
-4. Endi qo'lda sinab ko'ring: biror o'quvchining balini **kamaytiring** (masalan 9 → 4)
+3. **Avtomatik baholash** → hamma o'quvchiga ball qo'yiladi. Jadval ustidagi yashil
+   chiziqda sinf holati ko'rinadi: «Baholandi 30/30 · Bu ish 86% · Chorak o'rtachasi 86% ·
+   O'sish shartiga mos».
+4. Endi qo'lda sinab ko'ring: biror o'quvchining balini **juda kamaytiring** (masalan 9 → 2)
    va maydondan chiqing (Tab yoki Enter).
-   **Kutilgan natija:** qizil toast — «baho saqlanmadi — umumiy foiz tushib ketadi.
-   Kamida N ball qo'ying», maydon esa eski qiymatiga qaytadi. ✅ O'sish qoidasi ishlayapti.
-5. Balni **oshiring** (9 → 10) — saqlanadi, yashil ✓ chiqadi.
+
+   **Kutilgan natija:** agar sinf o'rtachasi baribir kerakli darajadan yuqori qolsa — baho
+   **saqlanadi** (bitta o'quvchining pasayishi normal). Agar sinf o'rtachasi kerakli darajadan
+   tushib ketsa — qizil toast chiqadi: «sinf o'rtachasi 84% bo'lib qoladi, kerak ≥86%. Bu
+   o'quvchiga kamida N ball qo'ying yoki boshqalarnikini ko'taring», maydon esa eski
+   qiymatiga qaytadi. ✅ Qoida **sinf darajasida** ishlayapti.
+5. Yuqoridagi chiziq sariq bo'lib «Sinfga yana N ball kerak» deb turganida — bir-ikki
+   o'quvchining balini ko'tarsangiz, chiziq yashilga o'tadi.
 6. Yana BSB lar qo'shing (jami 50 ballgacha), keyin **ChSB (40)**, oxirida **10 ballik** →
    **Avtomatik**.
 7. **Chorak yakuni** yorlig'i: har bir o'quvchida jami ball, foiz va baho (2–5) ko'rinadi.
-8. 2-chorakka o'ting va yana baholang — endi minimal ballar 1-chorak darajasidan past
-   bo'lmaydi.
+   O'quvchilar foizi turlicha bo'ladi — bu normal, muhimi sinf o'rtachasi.
+8. 2-chorakka o'ting va yana baholang — endi sinf 1-chorak darajasidan past bo'lishi mumkin emas.
 
 ### 8.5. Statistika (menejer oynasida)
-**Statistika** → choraklar bo'yicha o'sish, o'qituvchilar/sinflar/fanlar kesimi,
-«to'xtatilgan urinishlar» ustuni (4-bandda qilgan urinishingiz shu yerda ko'rinadi).
-**Excel'ga yuklash** → 5 varaqli fayl tushadi.
+**Statistika** → choraklar bo'yicha o'sish va to'rtta kesim: **o'qituvchilar**, **sinflar**,
+**parallellar** (barcha 7-sinflar kabi) va **fanlar**. «To'xtatilgan urinishlar» ustunida
+4-bandda qilgan urinishingiz ko'rinadi. **Excel'ga yuklash** → 6 varaqli fayl tushadi
+(Maktab, O'qituvchilar, Sinflar, Parallellar, Fanlar, Faollik).
 
 **O'zgarishlar** sahifasi: kim, qachon, qaysi bahoni qo'ygani va tahrirlagani.
 
@@ -342,7 +350,7 @@ bir bosishda qaytadi.
 | `new row violates row-level security policy` | foydalanuvchi tasdiqlanmagan yoki roli mos emas | Admin → Foydalanuvchilar → Tasdiqlash; sinf qo'shishni menejer qiladi |
 | Sinflar ro'yxati bo'sh (o'qituvchida) | faol o'quv yili yo'q yoki sinf kiritilmagan | Sozlamalar → o'quv yilini faol qiling; menejer sinf qo'shsin |
 | «admin-users funksiyasi deploy qilinmagan» | 7-qadam bajarilmagan | 7-qadamni bajaring yoki parolni foydalanuvchining o'zi almashtirsin |
-| Baho saqlanmayapti, qizil toast chiqyapti | o'sish qoidasi — ball juda past | Toastda ko'rsatilgan minimal balldan kam bo'lmasin |
+| Baho saqlanmayapti, qizil toast chiqyapti | sinf o'rtachasi kerakli darajadan tushib ketadi | Toastda ko'rsatilgan ballni qo'ying yoki boshqa o'quvchilarning ballarini ko'taring. Alohida o'quvchi pasayishi mumkin — sinf o'rtachasi ushlab tursa |
 | Baho maydoni kulrang, 🔒 | 2 kun o'tgan | Qoida shunday. Muddatni admin **Sozlamalar → Tahrir muddati** dan o'zgartirishi mumkin |
 | Proyekt «paused» | 1 hafta ishlatilmagan | Supabase panelida **Restore project** |
 

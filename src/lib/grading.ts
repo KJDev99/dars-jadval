@@ -42,16 +42,6 @@ export const ball = (v: number | null | undefined, digits = 2): string =>
     ? '—'
     : v.toFixed(digits).replace(/[.,]00$/, '').replace('.', ',')
 
-/**
- * Minimal ruxsat etilgan ballni ko'rsatish uchun.
- * Doim YUQORIGA yaxlitlanadi — aks holda ko'rsatilgan ball qoidadan past
- * bo'lib qolishi va o'qituvchi uni kiritganda saqlanmasligi mumkin.
- */
-export const minBall = (v: number | null | undefined): string =>
-  v === null || v === undefined || !Number.isFinite(v)
-    ? '—'
-    : ball(Math.ceil(v * 10) / 10, 1)
-
 /** O'sish belgisi: +2,4 / −1,1 */
 export const delta = (v: number | null): string =>
   v === null || !Number.isFinite(v)
@@ -87,37 +77,36 @@ export interface AutoOptions {
 /**
  * Avtomatik baho taklifi.
  *
- * Qoida: har bir yangi ish foizi «pol»dan (floor_pct) past bo'lmaydi —
- * shuning uchun o'rtacha hech qachon pasaymaydi. Tarixi bor o'quvchiga
- * pol ustiga kichik o'sish qo'shiladi, tarixi yo'qiga esa o'z darajasi
- * tanlanadi (har safar bir xil chiqadi — tasodif barqaror).
+ * Har bir o'quvchiga o'z darajasidan (base_pct) kichik o'sish qo'shiladi.
+ * Hamma o'quvchi o'sgani uchun sinf o'rtachasi ham o'sadi — server
+ * tekshiruvi (sinf darajasida) birinchi martadan o'tadi.
+ * Tasodif barqaror: bir xil ish uchun natija har safar bir xil chiqadi.
  */
 export function autoPoints(
-  row: Pick<JournalRow, 'student_id' | 'floor_pct'>,
+  row: Pick<JournalRow, 'student_id' | 'base_pct'>,
   maxPoints: number,
   seed: string,
   opt: AutoOptions = {},
 ): number {
   const { baseMin = 68, baseMax = 92, stepMin = 1, stepMax = 4 } = opt
   const rng = makeRng(hash(row.student_id + seed))
-  const floor = row.floor_pct ?? 0
+  const base = row.base_pct ?? 0
 
   let target: number
-  if (floor <= 0) {
+  if (base <= 0) {
     target = baseMin + rng() * (baseMax - baseMin)
   } else {
-    const room = 100 - floor
+    const room = 100 - base
     const step = stepMin + rng() * (stepMax - stepMin)
-    target = floor + Math.min(step, room * 0.6)
+    target = base + Math.min(step, room * 0.6)
   }
   target = Math.min(100, target)
 
-  // Ballni butun songa yaxlitlaymiz (jurnalda butun ball qulay),
-  // lekin poldan past tushib ketmasin
+  // Ballni butun songa yaxlitlaymiz, lekin o'z darajasidan pastga tushmasin
   const exact = (target * maxPoints) / 100
-  const minAllowed = Math.ceil(floor * maxPoints) / 100
+  const minSelf = Math.ceil(base * maxPoints) / 100
   let points = Math.round(exact)
-  if (points < minAllowed) points = Math.ceil(minAllowed * 100) / 100
+  if (points < minSelf) points = Math.ceil(minSelf * 100) / 100
   if (points > maxPoints) points = maxPoints
   return points
 }

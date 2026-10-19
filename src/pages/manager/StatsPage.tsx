@@ -7,11 +7,11 @@ import { ball, delta, deltaTone, pct, QUARTER_PAIRS, pairAvg } from '../../lib/g
 import { exportSheets, today } from '../../lib/excel'
 import type { Sheet } from '../../lib/excel'
 import type {
-  AcademicYear, ClassQuarter, Profile, SchoolQuarter, SubjectQuarter,
+  AcademicYear, ClassQuarter, GradeQuarter, Profile, SchoolQuarter, SubjectQuarter,
   TeacherActivity, TeacherBlocked, TeacherQuarter,
 } from '../../lib/types'
 
-type Tab = 'teachers' | 'classes' | 'subjects'
+type Tab = 'teachers' | 'classes' | 'parallels' | 'subjects'
 
 /** Bir kesimning choraklar bo'yicha qatori */
 interface Line {
@@ -38,6 +38,7 @@ export default function StatsPage() {
   const [school, setSchool] = useState<SchoolQuarter[]>([])
   const [teachers, setTeachers] = useState<TeacherQuarter[]>([])
   const [classes, setClasses] = useState<ClassQuarter[]>([])
+  const [parallels, setParallels] = useState<GradeQuarter[]>([])
   const [subjects, setSubjects] = useState<SubjectQuarter[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [activity, setActivity] = useState<TeacherActivity[]>([])
@@ -50,10 +51,11 @@ export default function StatsPage() {
     setYear(yr)
     if (!yr) return setLoading(false)
 
-    const [s, t, c, sub, p, a, b] = await Promise.all([
+    const [s, t, c, g, sub, p, a, b] = await Promise.all([
       supabase.from('v_school_quarter').select('*').eq('year_id', yr.id).order('quarter'),
       supabase.from('v_teacher_quarter').select('*').eq('year_id', yr.id),
       supabase.from('v_class_quarter').select('*').eq('year_id', yr.id),
+      supabase.from('v_grade_quarter').select('*').eq('year_id', yr.id).order('grade'),
       supabase.from('v_subject_quarter').select('*').eq('year_id', yr.id),
       supabase.from('profiles').select('*'),
       supabase.from('v_teacher_activity').select('*'),
@@ -63,6 +65,7 @@ export default function StatsPage() {
     setSchool((s.data as SchoolQuarter[]) ?? [])
     setTeachers((t.data as TeacherQuarter[]) ?? [])
     setClasses((c.data as ClassQuarter[]) ?? [])
+    setParallels((g.data as GradeQuarter[]) ?? [])
     setSubjects((sub.data as SubjectQuarter[]) ?? [])
     setProfiles((p.data as Profile[]) ?? [])
     setActivity((a.data as TeacherActivity[]) ?? [])
@@ -111,8 +114,15 @@ export default function StatsPage() {
       )
     if (tab === 'classes')
       return group(classes, (r) => r.class_id, (r) => r.class_name, (r) => `${r.subjects} fan`)
+    if (tab === 'parallels')
+      return group(
+        parallels,
+        (r) => String(r.grade),
+        (r) => `${r.grade}-sinflar`,
+        (r) => `${r.classes} sinf`,
+      )
     return group(subjects, (r) => String(r.subject_id), (r) => r.subject_name, (r) => `${r.teachers} o‘qituvchi`)
-  }, [tab, teachers, classes, subjects, profiles])
+  }, [tab, teachers, classes, parallels, subjects, profiles])
 
   const activityByTeacher = useMemo(() => {
     const m = new Map<string, { changes: number; manual: number; auto: number; blocked: number }>()
@@ -207,6 +217,31 @@ export default function StatsPage() {
       },
       { name: 'O‘qituvchilar', rows: [head, ...linesOf(teacherLines)] },
       { name: 'Sinflar', rows: [head, ...linesOf(classLines)] },
+      {
+        name: 'Parallellar',
+        rows: [
+          ['Parallel', '1-chorak', '2-chorak', '3-chorak', '4-chorak', 'O‘sish', 'O‘quvchi'],
+          ...(() => {
+            const m = new Map<number, Line>()
+            for (const r of parallels) {
+              const l =
+                m.get(r.grade) ??
+                {
+                  key: String(r.grade),
+                  name: `${r.grade}-sinflar`,
+                  q: { 1: null, 2: null, 3: null, 4: null },
+                  students: 0,
+                }
+              l.q[r.quarter] = r.avg_pct
+              l.students = Math.max(l.students, r.students)
+              m.set(r.grade, l)
+            }
+            return [...m.values()]
+              .sort((a, b) => Number(a.key) - Number(b.key))
+              .map((l) => [l.name, l.q[1] ?? '', l.q[2] ?? '', l.q[3] ?? '', l.q[4] ?? '', growth(l.q) ?? '', l.students])
+          })(),
+        ],
+      },
       { name: 'Fanlar', rows: [head, ...linesOf(subjectLines)] },
       {
         name: 'Faollik',
@@ -331,6 +366,7 @@ export default function StatsPage() {
           items={[
             { value: 'teachers' as const, label: 'O‘qituvchilar' },
             { value: 'classes' as const, label: 'Sinflar' },
+            { value: 'parallels' as const, label: 'Parallellar' },
             { value: 'subjects' as const, label: 'Fanlar' },
           ]}
         />

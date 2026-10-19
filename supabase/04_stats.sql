@@ -153,6 +153,20 @@ select a.teacher_id,
   join assignments a on a.id = b.assignment_id
  group by a.teacher_id, b.quarter;
 
+-- Parallel (daraja) kesimida — masalan barcha 7-sinflar
+create or replace view v_grade_quarter with (security_invoker = true) as
+select grade,
+       year_id,
+       quarter,
+       count(distinct student_id)                 as students,
+       count(distinct class_id)                   as classes,
+       round(avg(pct), 2)                         as avg_pct,
+       round(avg(mark), 2)                        as avg_mark,
+       round(100.0 * count(*) filter (where mark >= 4) / count(*), 1) as quality,
+       round(100.0 * count(*) filter (where mark >= 3) / count(*), 1) as progress
+  from v_student_quarter
+ group by grade, year_id, quarter;
+
 -- ───────────────────── Huquqlar ─────────────────────
 -- Supabase yangi jadvallarga odatda o'zi huquq beradi, lekin aniq yozib
 -- qo'yamiz — baza boshqa joyga ko'chirilsa ham ishlaydi.
@@ -162,3 +176,7 @@ grant select, insert, update, delete on all tables in schema public to authentic
 grant select on subjects to anon;
 grant usage, select on all sequences in schema public to authenticated;
 grant execute on all functions in schema public to anon, authenticated;
+
+-- Ichki funksiya: mijoz chaqirmasin (sinf tekshiruvini o'chirib qo'yish mumkin edi)
+revoke all on function save_grade_raw(uuid, uuid, numeric, boolean, boolean)
+  from public, anon, authenticated;

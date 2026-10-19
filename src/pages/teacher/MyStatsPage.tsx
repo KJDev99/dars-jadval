@@ -143,7 +143,12 @@ export default function MyStatsPage() {
 
   const vals = QS.map((n) => mine[n]).filter((v): v is number => v !== null)
   const g = vals.length > 1 ? vals[vals.length - 1] - vals[0] : null
-  const dropped = byStudent.filter((s) => s.growth !== null && s.growth < 0).length
+  // Qoida sinf darajasida — shuning uchun asosiy ko'rsatkich: pasaygan sinf bormi
+  const droppedClasses = byClass.filter((c) => {
+    const v = QS.map((n) => c.q[n]).filter((x): x is number => x !== null)
+    return v.length > 1 && v[v.length - 1] < v[0] - 0.01
+  }).length
+  const droppedStudents = byStudent.filter((s) => s.growth !== null && s.growth < 0).length
 
   return (
     <Page>
@@ -167,10 +172,14 @@ export default function MyStatsPage() {
         />
         <Stat label="O‘quvchilar" value={byStudent.length} />
         <Stat
-          label="Pasaygan o‘quvchi"
-          value={dropped}
-          tone={dropped ? 'amber' : 'slate'}
-          hint={dropped ? 'tekshirib ko‘ring' : 'hammasi o‘sgan'}
+          label="Pasaygan sinf"
+          value={droppedClasses}
+          tone={droppedClasses ? 'rose' : 'emerald'}
+          hint={
+            droppedClasses
+              ? 'qoida buzilgan — tekshiring'
+              : `hammasi o‘sgan · ${droppedStudents} o‘quvchi pasaygan (ruxsat etilgan)`
+          }
         />
       </div>
 

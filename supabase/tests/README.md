@@ -5,8 +5,10 @@ mantiq buzilmaganini mahalliy PostgreSQL'da tekshirish uchun.
 
 - `00_supabase_stub.sql` — Supabase muhitini taqlid qiladi (`auth.users`, `auth.uid()`,
   `anon`/`authenticated` rollari)
-- `smoke-test.sql` — 25 ta tekshiruv: rollar, RLS, o'sish qoidasi, 2 kunlik qulf,
-  BSB 50 / ChSB 40 cheklovi, 10 ballik baho, statistika
+- `smoke-test.sql` — 28 ta tekshiruv: rollar va tasdiqlash, RLS, **sinf darajasidagi
+  o'sish qoidasi** (alohida o'quvchi pasayishi mumkin, sinf — yo'q), ommaviy saqlashning
+  butunlay bekor qilinishi, 2 kunlik qulf, BSB 50 / ChSB 40 cheklovi, 10 ballik baho,
+  sinf → parallel → maktab o'sishi
 
 ## Ishga tushirish
 

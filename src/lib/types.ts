@@ -96,10 +96,25 @@ export interface JournalRow {
   order_no: number
   points: number | null
   is_auto: boolean
-  floor_pct: number
-  min_points: number
+  /** O'quvchining shu chorakdagi (yoki oldingi chorakdagi) o'z darajasi, %.
+   *  Cheklov emas — avtomatik baho taklif qilish uchun asos. */
+  base_pct: number | null
   locked: boolean
   created_at: string | null
+}
+
+/** class_progress() — sinfning o'sish qoidasi bo'yicha holati */
+export interface ClassProgress {
+  roster: number
+  filled: number
+  work_pct: number | null
+  quarter_pct: number | null
+  /** Pasaymasligi kerak bo'lgan daraja (null — birinchi ish, cheklov yo'q) */
+  floor_pct: number | null
+  complete: boolean
+  ok: boolean
+  /** Shart bajarilishi uchun sinfga yana shuncha ball kerak */
+  need_points: number
 }
 
 /** extra_rows() natijasi — chorak oxiridagi 10 ballik baho */
@@ -108,28 +123,37 @@ export interface ExtraRow {
   full_name: string
   order_no: number
   points: number | null
-  min_points: number
   locked: boolean
   /** 10 ballik bahosiz yig'ilgan ball va maksimal ball */
   q_points: number
   q_max: number
-  pct_now: number | null
+  /** O'quvchining 10 ballsiz chorak foizi */
+  base_pct: number | null
 }
 
 /** save_grade() / save_extra() javobi */
 export interface SaveResult {
   ok: boolean
   points?: number
-  error?: 'NOT_FOUND' | 'FORBIDDEN' | 'OVER_MAX' | 'LOCKED' | 'TOO_LOW'
-  min_points?: number
-  max_points?: number
+  error?: 'NOT_FOUND' | 'FORBIDDEN' | 'OVER_MAX' | 'LOCKED' | 'CLASS_TOO_LOW'
+  /** CLASS_TOO_LOW bo'lganda: sinf o'rtachasi va kerakli daraja */
+  class_pct?: number
   floor_pct?: number
+  /** Shu o'quvchiga kamida shuncha ball kerak (maksimaldan oshsa —
+   *  boshqa o'quvchilarning ballarini ko'tarish kerak) */
+  need_points?: number
+  max_points?: number
   until?: string
 }
 
+/** save_grades() javobi. Sinf sharti buzilsa — hammasi bekor qilinadi. */
 export interface BulkResult {
   saved: number
   failed: (SaveResult & { student_id: string })[]
+  error?: 'CLASS_TOO_LOW' | 'NOT_FOUND' | 'FORBIDDEN'
+  class_pct?: number
+  floor_pct?: number
+  need_points?: number
 }
 
 /* ─────────────────────── Statistika ko'rinishlari ─────────────────────── */
@@ -189,6 +213,12 @@ export interface SubjectQuarter extends QuarterStat {
 
 export interface SchoolQuarter extends QuarterStat {
   teachers: number
+  classes: number
+}
+
+/** Parallel: barcha 7-sinflar kabi */
+export interface GradeQuarter extends QuarterStat {
+  grade: number
   classes: number
 }
 
