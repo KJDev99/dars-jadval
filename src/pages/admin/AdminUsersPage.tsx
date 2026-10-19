@@ -3,6 +3,7 @@ import { supabase, errText } from '../../lib/supabase'
 import { useAuth, ROLE_LABEL, fullName } from '../../store/auth'
 import { useToast } from '../../ui/Toast'
 import { Field, Loading, Modal, Page, PageHeader, Segmented, TableWrap } from '../../ui/ui'
+import { Select } from '../../ui/Select'
 import { IcoCheck, IcoBan, IcoKey, IcoTrash, IcoClock } from '../../ui/icons'
 import type { Profile, Role, Subject, UserStatus } from '../../lib/types'
 
@@ -173,35 +174,29 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="td font-mono text-xs">{p.login}</td>
                   <td className="td">
-                    <select
-                      className="input py-1 text-xs"
+                    <Select
+                      size="sm"
                       value={p.role}
                       disabled={p.id === me?.id}
-                      onChange={(e) => void setRole(p, e.target.value as Role)}
-                    >
-                      {(['teacher', 'manager', 'admin'] as Role[]).map((r) => (
-                        <option key={r} value={r}>
-                          {ROLE_LABEL[r]}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(v) => void setRole(p, v as Role)}
+                      options={(['teacher', 'manager', 'admin'] as Role[]).map((r) => ({
+                        value: r,
+                        label: ROLE_LABEL[r],
+                      }))}
+                    />
                   </td>
                   <td className="td">
                     {p.role === 'teacher' ? (
-                      <select
-                        className="input py-1 text-xs"
-                        value={p.subject_id ?? ''}
-                        onChange={(e) =>
-                          void setSubject(p, e.target.value ? Number(e.target.value) : null)
-                        }
-                      >
-                        <option value="">—</option>
-                        {subjects.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Select
+                        size="sm"
+                        value={p.subject_id ?? 0}
+                        onChange={(v) => void setSubject(p, v ? Number(v) : null)}
+                        options={[
+                          { value: 0, label: '— fan yo‘q —' },
+                          ...subjects.map((s) => ({ value: s.id, label: s.name })),
+                        ]}
+                        placeholder="—"
+                      />
                     ) : (
                       <span className="text-faint">{subjectName(p.subject_id)}</span>
                     )}

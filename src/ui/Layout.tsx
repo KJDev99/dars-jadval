@@ -5,7 +5,7 @@ import { applyTheme, getTheme } from './theme'
 import type { Theme } from './theme'
 import {
   IcoDashboard, IcoClasses, IcoHistory, IcoUserCog, IcoJournal, IcoLogout,
-  IcoSun, IcoMoon, IcoSystem, IcoMenu, IcoClose, IcoKey, IcoGrade, IcoSettings,
+  IcoSun, IcoMoon, IcoMenu, IcoClose, IcoKey, IcoGrade, IcoSettings,
 } from './icons'
 import type { IconType } from './icons'
 import type { Role } from '../lib/types'
@@ -32,12 +32,6 @@ const NAV: Record<Role, Link[]> = {
     { to: '/my-stats', label: 'Natijalarim', icon: IcoGrade },
   ],
 }
-
-const THEMES: { v: Theme; icon: IconType; title: string }[] = [
-  { v: 'light', icon: IcoSun, title: 'Yorug‘' },
-  { v: 'dark', icon: IcoMoon, title: 'Qorong‘i' },
-  { v: 'system', icon: IcoSystem, title: 'Tizim' },
-]
 
 export default function Layout() {
   const { profile, signOut } = useAuth()
@@ -72,18 +66,13 @@ export default function Layout() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <div className="seg hidden sm:inline-flex">
-              {THEMES.map((t) => (
-                <button
-                  key={t.v}
-                  onClick={() => setTheme(t.v)}
-                  title={t.title}
-                  className={`seg-item px-2 ${theme === t.v ? 'seg-item-on' : ''}`}
-                >
-                  <t.icon className="h-4 w-4" />
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="btn-ghost"
+              title={theme === 'dark' ? 'Yorug‘ mavzuga o‘tish' : 'Qorong‘i mavzuga o‘tish'}
+            >
+              {theme === 'dark' ? <IcoSun className="h-4 w-4" /> : <IcoMoon className="h-4 w-4" />}
+            </button>
 
             <div className="hidden text-right leading-tight sm:block">
               <div className="text-sm font-medium text-fg">{fullName(profile)}</div>
