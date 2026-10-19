@@ -122,6 +122,10 @@ npm run build      # natija: dist/
 `dist/` — oddiy statik fayllar, har qanday hostingda ishlaydi (Vercel, Netlify, Cloudflare
 Pages, GitHub Pages). Ichki papkaga joylasangiz: `BASE_PATH=/baholash/ npm run build`.
 
+Supabase sozlamalari hostingda `.env.production` faylidan o'qiladi (u ataylab git'ga
+qo'shilgan — `.env` esa faqat mahalliy ishlash uchun va git'ga tushmaydi). Proyektni
+almashtirsangiz, shu faylni tahrirlang.
+
 Marshrutlar `HashRouter` da — server sozlamasi (rewrite) shart emas.
 
 ---
