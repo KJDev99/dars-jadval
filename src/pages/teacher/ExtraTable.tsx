@@ -3,7 +3,7 @@ import { rpc, errText } from '../../lib/supabase'
 import { useToast } from '../../ui/Toast'
 import { Loading, TableWrap } from '../../ui/ui'
 import { IcoAuto, IcoLock, IcoOk } from '../../ui/icons'
-import { ball, pct, EXTRA_TOTAL, markOf, MARK_TINT } from '../../lib/grading'
+import { ball, minBall, pct, EXTRA_TOTAL, markOf, MARK_TINT } from '../../lib/grading'
 import type { ExtraRow, SaveResult } from '../../lib/types'
 
 /**
@@ -84,7 +84,7 @@ export default function ExtraTable({
       setDraft((d) => ({ ...d, [row.student_id]: prev }))
       if (res.error === 'TOO_LOW')
         toast.err(
-          `${row.full_name}: saqlanmadi — chorak foizi tushadi. Kamida ${ball(res.min_points, 0)} ball qo‘ying.`,
+          `${row.full_name}: saqlanmadi — chorak foizi tushadi. Kamida ${minBall(res.min_points)} ball qo‘ying.`,
         )
       else if (res.error === 'LOCKED')
         toast.err(`${row.full_name}: 2 kundan oshdi, o‘zgartirilmaydi`)
@@ -187,7 +187,7 @@ export default function ExtraTable({
                     />
                   </td>
                   <td className="td text-center text-xs tabular-nums text-muted">
-                    {r.min_points > 0 ? ball(r.min_points, 0) : '—'}
+                    {r.min_points > 0 ? minBall(r.min_points) : '—'}
                   </td>
                   <td className="td text-center">
                     {mark ? (

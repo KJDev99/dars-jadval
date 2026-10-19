@@ -152,3 +152,13 @@ select a.teacher_id,
   from blocked_attempts b
   join assignments a on a.id = b.assignment_id
  group by a.teacher_id, b.quarter;
+
+-- ───────────────────── Huquqlar ─────────────────────
+-- Supabase yangi jadvallarga odatda o'zi huquq beradi, lekin aniq yozib
+-- qo'yamiz — baza boshqa joyga ko'chirilsa ham ishlaydi.
+-- Haqiqiy cheklov RLS siyosatlarida (02_security.sql).
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant select on subjects to anon;
+grant usage, select on all sequences in schema public to authenticated;
+grant execute on all functions in schema public to anon, authenticated;

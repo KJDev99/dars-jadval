@@ -42,6 +42,16 @@ export const ball = (v: number | null | undefined, digits = 2): string =>
     ? '—'
     : v.toFixed(digits).replace(/[.,]00$/, '').replace('.', ',')
 
+/**
+ * Minimal ruxsat etilgan ballni ko'rsatish uchun.
+ * Doim YUQORIGA yaxlitlanadi — aks holda ko'rsatilgan ball qoidadan past
+ * bo'lib qolishi va o'qituvchi uni kiritganda saqlanmasligi mumkin.
+ */
+export const minBall = (v: number | null | undefined): string =>
+  v === null || v === undefined || !Number.isFinite(v)
+    ? '—'
+    : ball(Math.ceil(v * 10) / 10, 1)
+
 /** O'sish belgisi: +2,4 / −1,1 */
 export const delta = (v: number | null): string =>
   v === null || !Number.isFinite(v)

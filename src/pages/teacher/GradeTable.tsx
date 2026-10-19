@@ -3,7 +3,7 @@ import { rpc, errText } from '../../lib/supabase'
 import { useToast } from '../../ui/Toast'
 import { Loading, TableWrap } from '../../ui/ui'
 import { IcoAuto, IcoLock, IcoOk } from '../../ui/icons'
-import { autoFill, ball, pct, workLabel } from '../../lib/grading'
+import { autoFill, ball, minBall, pct, workLabel } from '../../lib/grading'
 import type { Assessment, BulkResult, JournalRow, SaveResult } from '../../lib/types'
 
 /**
@@ -87,7 +87,7 @@ export default function GradeTable({
       setDraft((d) => ({ ...d, [row.student_id]: prev }))
       if (res.error === 'TOO_LOW') {
         toast.err(
-          `${row.full_name}: baho saqlanmadi — umumiy foiz tushib ketadi. Kamida ${ball(res.min_points, 0)} ball qo‘ying (${pct(res.floor_pct)} darajasi).`,
+          `${row.full_name}: baho saqlanmadi — umumiy foiz tushib ketadi. Kamida ${minBall(res.min_points)} ball qo‘ying (${pct(res.floor_pct)} darajasi).`,
         )
       } else if (res.error === 'LOCKED') {
         toast.err(`${row.full_name}: baho 2 kundan oshdi, endi o‘zgartirilmaydi`)
@@ -193,7 +193,7 @@ export default function GradeTable({
                     />
                   </td>
                   <td className="td text-center text-xs tabular-nums text-muted">
-                    {r.floor_pct > 0 ? ball(r.min_points, 0) : '—'}
+                    {r.floor_pct > 0 ? minBall(r.min_points) : '—'}
                   </td>
                   <td className="td text-center tabular-nums">
                     {percent === null ? <span className="text-faint">—</span> : pct(percent)}
