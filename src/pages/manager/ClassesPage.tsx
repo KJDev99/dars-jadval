@@ -5,6 +5,7 @@ import { readStudentsFile, downloadTemplate, parseClassName } from '../../lib/ex
 import type { ImportedStudent } from '../../lib/excel'
 import { useToast } from '../../ui/Toast'
 import { Field, Loading, Modal, Page, PageHeader, Stat, TableWrap } from '../../ui/ui'
+import { Select } from '../../ui/Select'
 import { IcoPlus, IcoTrash, IcoUpload, IcoTemplate, IcoNext } from '../../ui/icons'
 import type { AcademicYear, SchoolClass } from '../../lib/types'
 
@@ -233,13 +234,14 @@ export default function ClassesPage() {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Sinf raqami">
-              <input
-                className="input"
-                type="number"
-                min={1}
-                max={11}
+              <Select
                 value={grade}
-                onChange={(e) => setGrade(e.target.value)}
+                onChange={setGrade}
+                searchable={false}
+                options={Array.from({ length: 11 }, (_, i) => ({
+                  value: String(i + 1),
+                  label: `${i + 1}-sinf`,
+                }))}
               />
             </Field>
             <Field label="Harfi">

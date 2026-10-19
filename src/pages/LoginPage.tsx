@@ -3,6 +3,7 @@ import { supabase, errText, LOGIN_DOMAIN } from '../lib/supabase'
 import { useAuth } from '../store/auth'
 import { useToast } from '../ui/Toast'
 import { Field } from '../ui/ui'
+import { Select } from '../ui/Select'
 import { IcoGrade, IcoLogin, IcoUserPlus } from '../ui/icons'
 import type { Subject } from '../lib/types'
 
@@ -129,18 +130,12 @@ export default function LoginPage() {
 
                 {role === 'teacher' && (
                   <Field label="Fan">
-                    <select
-                      className="input"
+                    <Select
                       value={subjectId}
-                      onChange={(e) => setSubjectId(e.target.value)}
-                    >
-                      <option value="">— tanlang —</option>
-                      {subjects.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setSubjectId}
+                      options={subjects.map((s) => ({ value: String(s.id), label: s.name }))}
+                      placeholder="— fanni tanlang —"
+                    />
                   </Field>
                 )}
               </>

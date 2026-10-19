@@ -3,6 +3,7 @@ import { supabase, errText } from '../../lib/supabase'
 import { useAuth } from '../../store/auth'
 import { useToast } from '../../ui/Toast'
 import { Field, Loading, Modal, Page, PageHeader, Segmented, TableWrap } from '../../ui/ui'
+import { Select } from '../../ui/Select'
 import { IcoPlus, IcoTrash, IcoUsers, IcoGrade } from '../../ui/icons'
 import { ball, pct, workLabel, BSB_TOTAL, CHSB_TOTAL, EXTRA_TOTAL, MARK_TINT } from '../../lib/grading'
 import GradeTable from './GradeTable'
@@ -232,41 +233,35 @@ export default function JournalPage() {
       {/* Sinf, guruh, chorak */}
       <div className="card mb-4 flex flex-wrap items-end gap-3 p-4">
         <Field label="Sinf">
-          <select
-            className="input min-w-28"
-            value={classId}
-            onChange={(e) => {
-              setClassId(e.target.value)
-              setGroupId('')
-              setTab('summary')
-            }}
-          >
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.grade}
-                {c.letter}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-32">
+            <Select
+              value={classId}
+              onChange={(v) => {
+                setClassId(v)
+                setGroupId('')
+                setTab('summary')
+              }}
+              options={classes.map((c) => ({ value: c.id, label: `${c.grade}${c.letter}` }))}
+              placeholder="— sinf —"
+            />
+          </div>
         </Field>
 
         {subject?.is_split && (
           <Field label="Guruh">
-            <select
-              className="input min-w-36"
-              value={groupId}
-              onChange={(e) => {
-                setGroupId(e.target.value)
-                setTab('summary')
-              }}
-            >
-              <option value="">Butun sinf</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
+            <div className="min-w-40">
+              <Select
+                value={groupId}
+                onChange={(v) => {
+                  setGroupId(v)
+                  setTab('summary')
+                }}
+                options={[
+                  { value: '', label: 'Butun sinf' },
+                  ...groups.map((g) => ({ value: g.id, label: g.name })),
+                ]}
+              />
+            </div>
           </Field>
         )}
 

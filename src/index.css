@@ -122,8 +122,16 @@
            focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20;
   }
 
-  select.input {
-    @apply cursor-pointer;
+  /* Belgilash katakchalari — hamma joyda bir xil ko'rinishda */
+  input[type='checkbox'],
+  input[type='radio'] {
+    @apply h-4 w-4 shrink-0 cursor-pointer border-line-strong bg-surface
+           text-indigo-600 accent-indigo-600
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30;
+  }
+
+  input[type='number'].input {
+    @apply tabular-nums;
   }
 
   .card {
