@@ -282,18 +282,33 @@ Eng oson yo'l — **Vercel** (bepul):
 
 1. Loyihani GitHub'ga yuklang.
 2. [vercel.com](https://vercel.com) → **Add New → Project** → repo'ni tanlang.
-3. **Environment Variables** bo'limiga qo'shing:
-   - `VITE_SUPABASE_URL` = Project URL
-   - `VITE_SUPABASE_ANON_KEY` = anon public kalit
-   - `VITE_LOGIN_DOMAIN` = `maktab.local`
+3. Build sozlamalari o'zi aniqlanadi (`npm run build`, chiqish papkasi `dist`).
 4. **Deploy**.
-5. Chiqqan manzilni (`https://baholash.vercel.app`) Supabase'ning
+5. Chiqqan manzilni (yoki o'z domeningizni) Supabase'ning
    **Authentication → URL Configuration → Site URL** iga yozing.
 
 Netlify yoki Cloudflare Pages ham xuddi shunday: build buyrug'i `npm run build`,
 chiqish papkasi `dist`.
 
----
+### Supabase kalitlari hostingga qanday boradi
+
+`.env` fayl git'ga tushmaydi, shuning uchun Vercel uni ko'rmaydi. Agar kalitlar
+yig'ish paytida bo'lmasa, sayt ochilganda **«Supabase sozlanmagan»** deb chiqadi.
+
+Shuning uchun loyihada **`.env.production`** fayli bor — u ataylab git'ga qo'shilgan
+va deploy paytida Vite shundan o'qiydi. Ya'ni qo'shimcha sozlash kerak emas: push
+qilsangiz, Vercel o'zi to'g'ri yig'adi.
+
+Supabase proyektini almashtirsangiz, `.env.production` ni tahrirlab push qiling.
+
+> Bu yerdagi `anon public` kalit maxfiy emas — u brauzerga baribir tushadi va shunday
+> mo'ljallangan. Ma'lumotni kalit emas, RLS siyosatlari himoya qiladi.
+> **`service_role` kalitini esa hech qachon kodga yozmang.**
+
+Agar kalitlarni git'da saqlashni istamasangiz: `.env.production` ni o'chirib,
+Vercel → **Settings → Environment Variables** ga `VITE_SUPABASE_URL`,
+`VITE_SUPABASE_ANON_KEY`, `VITE_LOGIN_DOMAIN` ni qo'shing va **Redeploy** qiling
+(«Use existing Build Cache» belgisini olib tashlab).
 
 ## 10-qadam. Xavfsizlik: zaxira va «uxlab qolmaslik»
 
