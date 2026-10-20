@@ -78,7 +78,7 @@ VITE_LOGIN_DOMAIN=maktab.local
 
 Chap menyuda **SQL Editor** → **New query**.
 
-Quyidagi **5 ta faylni shu tartibda** ishga tushiring. Har safar: faylni matn
+Quyidagi **6 ta faylni shu tartibda** ishga tushiring. Har safar: faylni matn
 muharririda oching → hammasini nusxa oling (Ctrl+A, Ctrl+C) → SQL Editorga qo'ying →
 **Run** (yoki Ctrl+Enter) → `Success. No rows returned` chiqishini kuting → keyingisiga o'ting.
 
@@ -89,6 +89,10 @@ muharririda oching → hammasini nusxa oling (Ctrl+A, Ctrl+C) → SQL Editorga q
 | 3 | `supabase/03_logic.sql` | baho qo'yish va o'sish qoidasi |
 | 4 | `supabase/04_stats.sql` | statistika ko'rinishlari |
 | 5 | `supabase/05_seed.sql` | fanlar va 2026-2027 o'quv yili |
+| 6 | `supabase/06_plan.sql` | BSB/ChSB rejasi, dars jadvali, eslatmalar |
+
+> **Tizim allaqachon ishlab turgan bo'lsa:** faqat `06_plan.sql` ni ishga tushiring —
+> qolgan fayllarga tegmaydi, mavjud ma'lumot yo'qolmaydi.
 
 **Tekshirish.** SQL Editorda yangi so'rov ochib ishga tushiring:
 
@@ -249,7 +253,45 @@ Shu ketma-ketlikni bir marta bajarib chiqing — hamma narsa ishlayotganiga isho
    O'quvchilar foizi turlicha bo'ladi — bu normal, muhimi sinf o'rtachasi.
 8. 2-chorakka o'ting va yana baholang — endi sinf 1-chorak darajasidan past bo'lishi mumkin emas.
 
-### 8.5. Statistika (menejer oynasida)
+### 8.5. BSB rejasi va dars jadvali (menejer oynasida)
+
+Ikkisi ham Excel'dan yuklanadi va ikkisi ham eslatmalar uchun kerak.
+
+**Dars jadvali.** **Dars jadvali** → **Namuna** → faylni to'ldiring:
+
+| Sinf | Kun | Dars | Fan | O'qituvchi | Xona |
+|---|---|---|---|---|---|
+| 8a | Dushanba | 1 | Matematika | Aliyev Vali | 203 |
+
+- «Kun» — `Dushanba`…`Shanba` yoki `1`…`6`
+- «O'qituvchi» — ro'yxatdan o'tgan odamning familiya + ismi (yoki logini).
+  **To'ldirilsa, BSB eslatmasi aynan shu o'qituvchiga boradi.** Bo'sh bo'lsa, eslatma shu
+  fanning barcha o'qituvchilariga chiqadi.
+
+Yuklagandan keyin jadvalni sinf bo'yicha yoki o'qituvchi bo'yicha ko'rish mumkin.
+
+**BSB/ChSB rejasi.** **BSB rejasi** → **Namuna** → faylni to'ldiring:
+
+| Chorak | Sinf | Fan | Ish | Sana | Ball |
+|---|---|---|---|---|---|
+| 1 | 8a | Matematika | 1-BSB | 15.11.2026 | 10 |
+| 1 | 8 | Ingliz tili | 1-BSB | 18.11.2026 | 15 |
+
+- «Sinf» — `8a` (bitta sinf) yoki `8` (barcha 8-sinflar uchun birdan)
+- «Ish» — `1-BSB`, `2-BSB`, `ChSB`
+- «Sana» — `15.11.2026` yoki Excel sana katakchasi
+- «Ball» — ixtiyoriy; jurnalda ish yaratilganda shu ball taklif qilinadi
+
+Reja jadvalida har bir satr holati avtomatik ko'rinadi: **Boshlanmagan**, **Chala**
+(ish bor, baholar to'liq emas) yoki **Bajarildi**.
+
+**Eslatmalarni tekshirish.** Sanasi o'tgan yoki bugungi satr qo'shib ko'ring — yuqoridagi
+🔔 tugmasida qizil raqam chiqadi. Menejer hamma sinfni, o'qituvchi faqat o'zining
+sinf-fanini ko'radi. O'qituvchi oynasida **Jadval va reja** sahifasida ham shu ro'yxat
+turadi, «Jurnal» tugmasi bosilganda to'g'ri sinf va chorak ochiladi — jurnalda
+«Rejada bor: 1-BSB 15-noy» tugmasi bilan ishni bir bosishda yaratish mumkin.
+
+### 8.6. Statistika (menejer oynasida)
 **Statistika** → choraklar bo'yicha o'sish va to'rtta kesim: **o'qituvchilar**, **sinflar**,
 **parallellar** (barcha 7-sinflar kabi) va **fanlar**. «To'xtatilgan urinishlar» ustunida
 4-bandda qilgan urinishingiz ko'rinadi. **Excel'ga yuklash** → 6 varaqli fayl tushadi
@@ -257,7 +299,7 @@ Shu ketma-ketlikni bir marta bajarib chiqing — hamma narsa ishlayotganiga isho
 
 **O'zgarishlar** sahifasi: kim, qachon, qaysi bahoni qo'ygani va tahrirlagani.
 
-### 8.6. 2 kunlik qulfni sinash
+### 8.7. 2 kunlik qulfni sinash
 Haqiqatda 2 kun kutish shart emas — SQL Editorda bitta bahoni «eskirtirib» ko'ring:
 
 ```sql
@@ -362,6 +404,8 @@ bir bosishda qaytadi.
 | «Email signups are disabled» | Email provider o'chiq | 4-qadam: Authentication → Email → yoqing |
 | Ro'yxatdan o'tgach hech narsa bo'lmayapti | «Confirm email» yoqiq qolgan | 4-qadam: o'chiring; eski foydalanuvchini Authentication → Users dan o'chirib, qayta ro'yxatdan o'ting |
 | `function journal_rows does not exist` | `03_logic.sql` ishga tushirilmagan | 3-qadamni tartib bilan takrorlang |
+| Eslatma qo'ng'irog'i bo'sh, reja sahifasi xato beradi | `06_plan.sql` ishga tushirilmagan | SQL Editorda `06_plan.sql` ni ishga tushiring |
+| Eslatma noto'g'ri o'qituvchiga boradi | dars jadvalida «O'qituvchi» ustuni bo'sh | Dars jadvalini o'qituvchi ismlari bilan qayta yuklang |
 | `new row violates row-level security policy` | foydalanuvchi tasdiqlanmagan yoki roli mos emas | Admin → Foydalanuvchilar → Tasdiqlash; sinf qo'shishni menejer qiladi |
 | Sinflar ro'yxati bo'sh (o'qituvchida) | faol o'quv yili yo'q yoki sinf kiritilmagan | Sozlamalar → o'quv yilini faol qiling; menejer sinf qo'shsin |
 | «admin-users funksiyasi deploy qilinmagan» | 7-qadam bajarilmagan | 7-qadamni bajaring yoki parolni foydalanuvchining o'zi almashtirsin |

@@ -13,8 +13,11 @@ import StatsPage from './pages/manager/StatsPage'
 import ClassesPage from './pages/manager/ClassesPage'
 import ClassPage from './pages/manager/ClassPage'
 import ChangesPage from './pages/manager/ChangesPage'
+import PlanPage from './pages/manager/PlanPage'
+import TimetablePage from './pages/manager/TimetablePage'
 import JournalPage from './pages/teacher/JournalPage'
 import MyStatsPage from './pages/teacher/MyStatsPage'
+import MySchedulePage from './pages/teacher/MySchedulePage'
 
 function SetupNotice() {
   return (
@@ -92,6 +95,8 @@ export default function App() {
             <Route path="/classes" element={<ClassesPage />} />
             <Route path="/classes/:classId" element={<ClassPage />} />
             <Route path="/changes" element={<ChangesPage />} />
+            <Route path="/plan" element={<PlanPage />} />
+            <Route path="/timetable" element={<TimetablePage />} />
           </>
         )}
 
@@ -100,6 +105,7 @@ export default function App() {
             <Route path="/journal" element={<JournalPage />} />
             <Route path="/journal/:assignmentId" element={<JournalPage />} />
             <Route path="/my-stats" element={<MyStatsPage />} />
+            <Route path="/schedule" element={<MySchedulePage />} />
           </>
         )}
 
