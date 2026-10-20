@@ -265,3 +265,91 @@ export interface GradeLogRow {
   actor_id: string
   at: string
 }
+
+/* ───────────── Dars jadvali va BSB/ChSB rejasi ───────────── */
+
+export interface Lesson {
+  id: string
+  year_id: number
+  class_id: string
+  subject_id: number
+  weekday: number // 1 = dushanba
+  lesson_no: number
+  teacher_id: string | null
+  room: string | null
+}
+
+/** v_timetable — nomlar bilan */
+export interface TimetableRow {
+  id: string
+  year_id: number
+  class_id: string
+  grade: number
+  letter: string
+  class_name: string
+  subject_id: number
+  subject_name: string
+  weekday: number
+  lesson_no: number
+  teacher_id: string | null
+  teacher_name: string | null
+  room: string | null
+}
+
+export interface AssessmentPlan {
+  id: string
+  year_id: number
+  quarter: Quarter
+  class_id: string
+  subject_id: number
+  kind: AssessKind
+  idx: number
+  planned_on: string
+  max_points: number | null
+  note: string | null
+}
+
+/** Reja satrining bajarilish holati */
+export type PlanState = 'none' | 'partial' | 'done'
+
+/** v_plan_status */
+export interface PlanStatusRow {
+  plan_id: string
+  year_id: number
+  quarter: Quarter
+  class_id: string
+  grade: number
+  letter: string
+  class_name: string
+  subject_id: number
+  subject_name: string
+  kind: AssessKind
+  idx: number
+  planned_on: string
+  max_points: number | null
+  note: string | null
+  days: number
+  state: PlanState
+}
+
+export type Urgency = 'late' | 'today' | 'soon'
+
+/** plan_feed() — eslatmalar */
+export interface FeedItem {
+  plan_id: string
+  quarter: Quarter
+  class_id: string
+  class_name: string
+  subject_id: number
+  subject_name: string
+  kind: AssessKind
+  idx: number
+  planned_on: string
+  max_points: number | null
+  days: number
+  state: PlanState
+  urgency: Urgency
+  teacher_id: string | null
+  teacher_name: string
+  is_read: boolean
+}

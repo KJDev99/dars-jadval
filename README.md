@@ -15,10 +15,27 @@ Texnologiya: React + TypeScript + Vite + Tailwind, backend — **Supabase** (Pos
 |---|---|
 | **Administrator** | Faqat akkauntlarni tasdiqlaydi, rol beradi, parolni almashtiradi. Fanlar va o'quv yillarini sozlaydi. |
 | **Menejer** | Sinflarni qo'shadi, o'quvchilarni Excel'dan import qiladi, maktab statistikasini ko'radi va Excel'ga yuklaydi. Baho qo'ymaydi. |
-| **O'qituvchi** | O'z fanidan jurnal yuritadi: BSB/ChSB qo'shadi, baho qo'yadi (avtomatik yoki qo'lda), 10 ballik bahoni kiritadi. Sinflarni **faqat ko'radi**, qo'sha olmaydi. |
+| **O'qituvchi** | O'z fanidan jurnal yuritadi: BSB/ChSB qo'shadi, baho qo'yadi (avtomatik yoki qo'lda), 10 ballik bahoni kiritadi. Sinflarni **faqat ko'radi**, qo'sha olmaydi. O'z dars jadvali va rejadagi ishlarini ko'radi. |
 
 Birinchi ro'yxatdan o'tgan foydalanuvchi avtomatik **administrator** bo'ladi va darhol
 tasdiqlanadi. Qolganlarning hammasi `pending` holatda turadi.
+
+## Reja va eslatmalar
+
+Menejer ikki jadvalni Excel'dan yuklaydi:
+
+- **BSB/ChSB rejasi** — qaysi chorakda, qaysi sinfda, qaysi fandan, qachon ish olinadi
+  (`Chorak · Sinf · Fan · Ish · Sana · Ball`). «Sinf» ustuniga `8a` yoki `8` (butun parallel)
+  yozish mumkin.
+- **Dars jadvali** — `Sinf · Kun · Dars · Fan · O'qituvchi · Xona`.
+
+Shu ikkisiga qarab **o'qituvchiga ham, menejerga ham eslatma** chiqadi (sarlavhadagi
+qo'ng'iroq): kechikkan, bugungi va 7 kun ichidagi bajarilmagan ishlar. Eslatma kimga
+tegishli ekani shunday aniqlanadi: jurnaldagi biriktirma → dars jadvalidagi o'qituvchi →
+shu fanning barcha o'qituvchilari. Ish to'liq baholangach eslatma o'zi yo'qoladi.
+
+Reja holati jurnaldan avtomatik o'qiladi: `Boshlanmagan` → `Chala` → `Bajarildi`.
+Jurnalda rejadagi ishni bitta tugma bilan yaratish mumkin (sanasi va bali reja bo'yicha).
 
 ## O'sish qoidasi — sinf darajasida
 
@@ -68,6 +85,7 @@ o'tib bo'lmaydi. To'xtatilgan urinishlar `blocked_attempts` jadvalida qoladi (me
    03_logic.sql      → baho qo'yish va o'sish qoidasi
    04_stats.sql      → statistika ko'rinishlari
    05_seed.sql       → fanlar va o'quv yili
+   06_plan.sql       → BSB/ChSB rejasi, dars jadvali, eslatmalar
    ```
 
    Hammasi qayta ishga tushirishga xavfsiz (idempotent).
@@ -158,7 +176,7 @@ Baza to'lib qolsa, eski yilni Excel'ga eksport qilib bazadan o'chirish kifoya.
 
 ```
 supabase/
-  01_schema.sql … 05_seed.sql   baza: jadvallar, RLS, mantiq, ko'rinishlar
+  01_schema.sql … 06_plan.sql   baza: jadvallar, RLS, mantiq, ko'rinishlar, reja
   functions/admin-users/        parol almashtirish (Edge Function)
 src/
   lib/        supabase klienti, tiplar, baholash hisoblari, Excel
@@ -167,8 +185,8 @@ src/
   pages/
     LoginPage, PendingPage, ProfilePage
     admin/    foydalanuvchilar, sozlamalar
-    manager/  statistika, sinflar, sinf kartasi, o'zgarishlar tarixi
-    teacher/  jurnal, baho jadvali, 10 ballik, guruhlar, natijalarim
+    manager/  statistika, sinflar, BSB rejasi, dars jadvali, o'zgarishlar tarixi
+    teacher/  jurnal, baho jadvali, 10 ballik, guruhlar, jadval va reja, natijalarim
 ```
 
 ## Buyruqlar

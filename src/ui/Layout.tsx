@@ -6,7 +6,9 @@ import type { Theme } from './theme'
 import {
   IcoDashboard, IcoClasses, IcoHistory, IcoUserCog, IcoJournal, IcoLogout,
   IcoSun, IcoMoon, IcoMenu, IcoClose, IcoKey, IcoGrade, IcoSettings,
+  IcoPlan, IcoSchedule,
 } from './icons'
+import NotificationBell from './NotificationBell'
 import type { IconType } from './icons'
 import type { Role } from '../lib/types'
 
@@ -21,14 +23,18 @@ const NAV: Record<Role, Link[]> = {
     { to: '/admin/users', label: 'Foydalanuvchilar', icon: IcoUserCog },
     { to: '/admin/settings', label: 'Sozlamalar', icon: IcoSettings },
     { to: '/stats', label: 'Statistika', icon: IcoDashboard },
+    { to: '/plan', label: 'BSB rejasi', icon: IcoPlan },
   ],
   manager: [
     { to: '/stats', label: 'Statistika', icon: IcoDashboard },
     { to: '/classes', label: 'Sinflar', icon: IcoClasses },
+    { to: '/plan', label: 'BSB rejasi', icon: IcoPlan },
+    { to: '/timetable', label: 'Dars jadvali', icon: IcoSchedule },
     { to: '/changes', label: "O'zgarishlar", icon: IcoHistory },
   ],
   teacher: [
     { to: '/journal', label: 'Jurnal', icon: IcoJournal },
+    { to: '/schedule', label: 'Jadval va reja', icon: IcoPlan },
     { to: '/my-stats', label: 'Natijalarim', icon: IcoGrade },
   ],
 }
@@ -66,6 +72,8 @@ export default function Layout() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            <NotificationBell />
+
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="btn-ghost"
